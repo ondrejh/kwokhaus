@@ -1,42 +1,34 @@
-# Vyžadujeme minimální CMake verzi
 cmake_minimum_required(VERSION 3.13)
 
-# Nastavení toolchain přes Pico SDK
-set(PICO_SDK_PATH "/home/hejdovi/Projekty/kwokhaus/fw/ext/pico-sdk")
-include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
-
-# Explicitně říkáme CMake, že budeme cross-compilovat pro RP2040
-#set(CMAKE_SYSTEM_NAME Generic)
-#set(CMAKE_SYSTEM_PROCESSOR arm)
-
-
-# Nastavení ASM kompilátoru pro RP2040
-#enable_language(ASM)
-#set(CMAKE_ASM_COMPILER /usr/bin/arm-none-eabi-gcc)
-
-
 # Define the project name (once)
-set(PROJECT_NAME trigger)
+set(PROJECT_NAME proj)
 
+# initialize the SDK based on PICO_SDK_PATH
+# note: this must happen before project()
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/ext/pico-sdk)
+include(pico_sdk_import.cmake)
+
+# Set project name
 project(${PROJECT_NAME} C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-# Inicializace Pico SDK
+# initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# Vytvoření hlavního cíle
+# rest of your project
 add_executable(${PROJECT_NAME}
-    src/main.c
-    # další C soubory, pokud jsou
+  src/main.c
 )
 
-# Přidání knihoven z Pico SDK (volitelné, podle projektu)
-target_link_libraries(${PROJECT_NAME} pico_stdlib)
+# add pico_stdlib library which aggregates commonly used features
+target_link_libraries(${PROJECT_NAME}
+  pico_stdlib
+)
 
 # Enable USB output, disable UART if desired
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
 
-# Nastavení výstupu pro .elf, .bin a .hex
+# create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(${PROJECT_NAME})
