@@ -5,7 +5,7 @@ set(PROJECT_NAME proj)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
-set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/ext/pico-sdk)
+set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/../ext/pico-sdk)
 include(pico_sdk_import.cmake)
 
 # Set project name
@@ -18,12 +18,17 @@ pico_sdk_init()
 
 # rest of your project
 add_executable(${PROJECT_NAME}
-  src/main.c
+  main.c
+  ws2812.c
+  ws2812.pio
 )
+
+pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/../ext/pico-examples/pio/ws2812/ws2812.pio)
 
 # add pico_stdlib library which aggregates commonly used features
 target_link_libraries(${PROJECT_NAME}
   pico_stdlib
+  hardware_pio
 )
 
 # Enable USB output, disable UART if desired
