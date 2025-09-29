@@ -8,7 +8,6 @@
 #include "ws2812.pio.h"
 #include "ws2812.h"
 
-//#include "../ext/u8g2/csrc/u8g2.h"
 #include "u8g2.h"
 
 #define LED_GREEN_PIN 12
