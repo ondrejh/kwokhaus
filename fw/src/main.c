@@ -17,10 +17,9 @@
 
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
-#define DISPLAY
+//#define DISPLAY
 
 #ifdef DISPLAY
-
 // Display I2C pins and instance
 #define DISP_I2C_SDA_PIN 4
 #define DISP_I2C_SCL_PIN 5
@@ -78,6 +77,9 @@ void init(void) {
   gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
   gpio_init(TRIGGER_PIN);
   gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
+  gpio_init(BUTTON_PIN);
+  gpio_set_dir(BUTTON_PIN, GPIO_IN);
+  gpio_set_pulls(BUTTON_PIN, true, false);
 
   // Initialize onboard NeoPixel
   ws2812_init(16);
@@ -88,23 +90,42 @@ int main() {
 
   init();
 
-  bool led = false;
-  uint32_t tLed = 0, tDisp = 0;
+  bool led = false, trig = false;
+  uint32_t tLed = 0, tDisp = 0, tTrig = 0;
+  uint8_t r = 0x00, g = 0x00, b = 0x00;
 
   sleep_ms(100);
 
   while (true) {
     uint32_t now = millis();
 
+    // live led (green)
     if (led && ((now - tLed) >= 50)) {
       led = false;
-      put_pixel(urgb_u32(0x00, 0x00, 0x00));
+      g = 0x00;
+      put_pixel(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 1000)) {
       led = true;
-      put_pixel(urgb_u32(0x00, 0x10, 0x00));
+      g = 0x10;
+      put_pixel(urgb_u32(r,g,b));
       printf("Hello World\r\n");
       tLed = now;
+    }
+
+    // trigger
+    if (trig && ((now - tTrig) >= 500)) {
+      trig = false;
+      gpio_put(TRIGGER_PIN, trig);
+      r = 0;
+      put_pixel(urgb_u32(r,g,b));
+    }
+    if (!trig && (gpio_get(BUTTON_PIN) == 0)) {
+      tTrig = now;
+      trig = true;
+      gpio_put(TRIGGER_PIN, trig);
+      r = 0x10;
+      put_pixel(urgb_u32(r,g,b));
     }
 
     //led = !led;
