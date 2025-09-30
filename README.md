@@ -8,7 +8,8 @@ Attempt on some eggish automation.
 
 ### Siple tasks
 
-- [ ] trigger by pushbutton (test)
+- [x] trigger by pushbutton (test)
+- [ ] simple pushbutton (any bool input) filtering
 - [ ] measure trigger charge voltage
 
 ### Hardware needed
