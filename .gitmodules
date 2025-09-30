@@ -4,3 +4,6 @@
 [submodule "fw/ext/pico-examples"]
 	path = fw/ext/pico-examples
 	url = https://github.com/raspberrypi/pico-examples.git
+[submodule "fw/ext/u8g2"]
+	path = fw/ext/u8g2
+	url = https://github.com/olikraus/u8g2.git
