@@ -41,9 +41,7 @@ void init(void) {
   };
 
   calc_render_area_buflen(&frame_area);
-
-  memset(buf, 0, SSD1306_BUF_LEN);
-  render(buf, &frame_area);
+  render(&frame_area);
 
   for (int i=0; i<3; i++) {
     SSD1306_send_cmd(SSD1306_SET_ALL_ON);
@@ -51,6 +49,10 @@ void init(void) {
     SSD1306_send_cmd(SSD1306_SET_ENTIRE_ON);
     sleep_ms(500);
   }
+  
+  char text[] = "Hello World";
+  WriteString(10, 10, text);
+  render(&frame_area);  
 }
 
 int main() {
