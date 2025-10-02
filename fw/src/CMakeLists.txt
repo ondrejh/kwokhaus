@@ -25,6 +25,7 @@ file(GLOB U8G2_SOURCES
 # rest of your project
 add_executable(${PROJECT_NAME}
   main.c
+  display.c
   ws2812.c
   ws2812.pio
   ${U8G2_SOURCES}

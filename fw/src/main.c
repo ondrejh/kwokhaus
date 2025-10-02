@@ -1,77 +1,17 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "pico/stdlib.h"
-#include "hardware/i2c.h"
-
-#include "ws2812.pio.h"
-#include "ws2812.h"
-
-#include "u8g2.h"
-
-#define LED_GREEN_PIN 12
-#define BUTTON_PIN 13
-#define TRIGGER_PIN 14
-#define SENSE_ADC_PIN 26
+#include "includes.h"
 
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
-//#define DISPLAY
+#define DISPLAY
 
 #ifdef DISPLAY
-// Display I2C pins and instance
-#define DISP_I2C_SDA_PIN 4
-#define DISP_I2C_SCL_PIN 5
-#define DISP_I2C_PORT i2c0
 
 // U8g2 structure
 u8g2_t u8g2;
 
-// Send function for U8g2
-uint8_t u8x8_byte_pico_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
-  switch(msg) {
-    case U8X8_MSG_BYTE_INIT:
-    case U8X8_MSG_BYTE_START_TRANSFER:
-    case U8X8_MSG_BYTE_END_TRANSFER:
-      return 1;
-    case U8X8_MSG_BYTE_SEND:
-      i2c_write_blocking(DISP_I2C_PORT, u8x8_GetI2CAddress(u8x8) >> 1, arg_ptr, arg_int, false);
-      return 1;
-    default:
-      return 0;
-  }
-}
-
-// Delay handler for U8g2
-uint8_t u8x8_gpio_delay_pico(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
-  switch(msg) {
-    case U8X8_MSG_DELAY_MILLI:
-      sleep_ms(arg_int);
-      return 1;
-    default:
-      return 0;
-  }
-}
 #endif // DISPLAY
 
 void init(void) {
-#ifdef DISPLAY
-  // Initialize display I2C
-  i2c_init(DISP_I2C_PORT, 400 * 1000);
-
-  // Initialize display (128x64)
-  u8g2_Setup_ssd1306_i2c_128x64_noname_f(
-    &u8g2,
-    U8G2_R0,
-    u8x8_byte_pico_i2c,
-    u8x8_gpio_delay_pico
-  );
-  u8g2_SetI2CAddress(&u8g2, 0x78); // 0x78 = 0x3C << 1
-  u8g2_InitDisplay(&u8g2);
-  u8g2_SetPowerSave(&u8g2, 0);
-#endif // DISPLAY
-
   // Initialize outputs
   gpio_init(LED_GREEN_PIN);
   gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
@@ -81,8 +21,37 @@ void init(void) {
   gpio_set_dir(BUTTON_PIN, GPIO_IN);
   gpio_set_pulls(BUTTON_PIN, true, false);
 
+  // Initialize display I2C
+  i2c_init(DISP_I2C_PORT, 400 * 1000);
+  gpio_set_function(DISP_I2C_SDA_PIN, GPIO_FUNC_I2C);
+  gpio_set_function(DISP_I2C_SCL_PIN, GPIO_FUNC_I2C);
+  gpio_pull_up(DISP_I2C_SDA_PIN);
+  gpio_pull_up(DISP_I2C_SCL_PIN);
+
+  // Initialize RTC I2C
+  i2c_init(RTC_I2C_PORT, 400 * 1000);
+  gpio_set_function(RTC_I2C_SDA_PIN, GPIO_FUNC_I2C);
+  gpio_set_function(RTC_I2C_SCL_PIN, GPIO_FUNC_I2C);
+  gpio_pull_up(RTC_I2C_SDA_PIN);
+  gpio_pull_up(RTC_I2C_SCL_PIN);
+
   // Initialize onboard NeoPixel
   ws2812_init(16);
+
+#ifdef DISPLAY
+
+  // Initialize display (128x64)
+  /*u8g2_Setup_ssd1306_i2c_128x64_noname_f(
+    &u8g2,
+    U8G2_R0,
+    u8x8_byte_pico_i2c,
+    u8x8_gpio_delay_pico
+  );
+  u8g2_SetI2CAddress(&u8g2, 0x78); // 0x78 = 0x3C << 1
+  u8g2_InitDisplay(&u8g2);*/
+  //u8g2_SetPowerSave(&u8g2, 0);
+#endif // DISPLAY
+
 }
 
 int main() {
@@ -135,13 +104,22 @@ int main() {
     //sleep_ms(1000);
   
 #ifdef DISPLAY
-    if ((now - tDisp) >= 1000) {
+    if ((now - tDisp) >= 10000) {
+      b = 0x10;
+      put_pixel(urgb_u32(r,g,b));
+
       tDisp = now;
       // display test
-      u8g2_ClearBuffer(&u8g2);
+      /*u8g2_ClearBuffer(&u8g2);
       u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
       u8g2_DrawStr(&u8g2, 0, 24, "Hello World!");
-      u8g2_SendBuffer(&u8g2);
+      u8g2_SendBuffer(&u8g2);*/
+      i2c_bus_scan(RTC_I2C_PORT);
+      i2c_bus_scan(DISP_I2C_PORT);
+      printf("\n");
+
+      b = 0x00;
+      put_pixel(urgb_u32(r,g,b));
     }
 #endif // DISPLAY
   }
