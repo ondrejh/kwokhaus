@@ -14,8 +14,8 @@ Attempt on some eggish automation.
 
 ### Hardware needed
 
-- [ ] rtc module
-- [ ] display
+- [x] rtc module
+- [x] display
 - [ ] communication port (uart)
 
 ### Functionality and features

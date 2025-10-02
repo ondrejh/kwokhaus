@@ -20,6 +20,7 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME}
   main.c
   display.c
+  rtc.c
   ws2812.c
   ws2812.pio
 )

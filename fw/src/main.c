@@ -80,6 +80,11 @@ int main() {
       g = 0x10;
       put_pixel(urgb_u32(r,g,b));
       printf("Hello World\r\n");
+      
+      uint8_t h,m,s;
+      ds3231_get_time(&h, &m, &s);
+      printf("%02d:%02d:%02d\n", h, m, s);
+      
       tLed = now;
     }
 
@@ -105,8 +110,8 @@ int main() {
     //sleep_ms(1000);
   
     if ((now - tDisp) >= 10000) {
-      b = 0x10;
-      put_pixel(urgb_u32(r,g,b));
+      //b = 0x10;
+      //put_pixel(urgb_u32(r,g,b));
 
       tDisp = now;
 
@@ -116,12 +121,12 @@ int main() {
       u8g2_DrawStr(&u8g2, 0, 15, "Hello World!");
       u8g2_SendBuffer(&u8g2);*/
 
-      i2c_bus_scan(RTC_I2C_PORT);
+      //i2c_bus_scan(RTC_I2C_PORT);
       //i2c_bus_scan(DISP_I2C_PORT);
-      printf("\n");
+      //printf("\n");
 
-      b = 0x00;
-      put_pixel(urgb_u32(r,g,b));
+      //b = 0x00;
+      //put_pixel(urgb_u32(r,g,b));
     }
   }
 }
