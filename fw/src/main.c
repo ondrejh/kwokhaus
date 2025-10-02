@@ -2,14 +2,8 @@
 
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
-#define DISPLAY
 
-#ifdef DISPLAY
-
-// U8g2 structure
-u8g2_t u8g2;
-
-#endif // DISPLAY
+uint8_t buf[SSD1306_BUF_LEN];
 
 void init(void) {
   // Initialize outputs
@@ -38,20 +32,25 @@ void init(void) {
   // Initialize onboard NeoPixel
   ws2812_init(16);
 
-#ifdef DISPLAY
+  SSD1306_init();
+  struct render_area frame_area = {
+    start_col : 0,
+    end_col : SSD1306_WIDTH - 1,
+    start_page : 0,
+    end_page :SSD1306_NUM_PAGES - 1,
+  };
 
-  // Initialize display (128x64)
-  /*u8g2_Setup_ssd1306_i2c_128x64_noname_f(
-    &u8g2,
-    U8G2_R0,
-    u8x8_byte_pico_i2c,
-    u8x8_gpio_delay_pico
-  );
-  u8g2_SetI2CAddress(&u8g2, 0x78); // 0x78 = 0x3C << 1
-  u8g2_InitDisplay(&u8g2);*/
-  //u8g2_SetPowerSave(&u8g2, 0);
-#endif // DISPLAY
+  calc_render_area_buflen(&frame_area);
 
+  memset(buf, 0, SSD1306_BUF_LEN);
+  render(buf, &frame_area);
+
+  for (int i=0; i<3; i++) {
+    SSD1306_send_cmd(SSD1306_SET_ALL_ON);
+    sleep_ms(500);
+    SSD1306_send_cmd(SSD1306_SET_ENTIRE_ON);
+    sleep_ms(500);
+  }
 }
 
 int main() {
@@ -103,24 +102,24 @@ int main() {
     //put_pixel(urgb_u32(0x00, led ? 0x10 : 0x00, 0x00));
     //sleep_ms(1000);
   
-#ifdef DISPLAY
     if ((now - tDisp) >= 10000) {
       b = 0x10;
       put_pixel(urgb_u32(r,g,b));
 
       tDisp = now;
+
       // display test
       /*u8g2_ClearBuffer(&u8g2);
       u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
-      u8g2_DrawStr(&u8g2, 0, 24, "Hello World!");
+      u8g2_DrawStr(&u8g2, 0, 15, "Hello World!");
       u8g2_SendBuffer(&u8g2);*/
+
       i2c_bus_scan(RTC_I2C_PORT);
-      i2c_bus_scan(DISP_I2C_PORT);
+      //i2c_bus_scan(DISP_I2C_PORT);
       printf("\n");
 
       b = 0x00;
       put_pixel(urgb_u32(r,g,b));
     }
-#endif // DISPLAY
   }
 }

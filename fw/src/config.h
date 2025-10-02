@@ -11,10 +11,12 @@
 #define DISP_I2C_SDA_PIN 4
 #define DISP_I2C_SCL_PIN 5
 #define DISP_I2C_PORT i2c0
+#define DISP_I2C_ADDR 0x3C
 
 // RTC I2C pins and instance
 #define RTC_I2C_SDA_PIN 2
 #define RTC_I2C_SCL_PIN 3
 #define RTC_I2C_PORT i2c1
+#define RTC_I2C_ADDR 0x68
 
 #endif // __CONFIG_H__
