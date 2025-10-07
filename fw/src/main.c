@@ -1,7 +1,5 @@
 #include "includes.h"
 
-#define millis() (to_ms_since_boot(get_absolute_time()))
-
 
 uint8_t buf[SSD1306_BUF_LEN];
 

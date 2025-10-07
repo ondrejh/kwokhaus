@@ -17,5 +17,6 @@
 #include "config.h"
 #include "display.h"
 #include "rtc.h"
+#include "board.h"
 
 #endif // __INCLUDES_H__
