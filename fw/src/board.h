@@ -4,6 +4,7 @@
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
 #define BTN_MIN_PULSE 10
+#define BTN_HOLD_PULSE 600
 
 typedef enum {
   BTNST_UNKNOWN,
@@ -13,5 +14,7 @@ typedef enum {
   BTNST_HOLD,
   BTNST_LONG_PRESSED,
 } ButtonState;
+
+ButtonState button_poll(uint32_t t);
 
 #endif // __BOARD_H__

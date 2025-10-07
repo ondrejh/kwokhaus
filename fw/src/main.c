@@ -41,13 +41,15 @@ void init(void) {
   calc_render_area_buflen(&frame_area);
   render(&frame_area);
 
-  for (int i=0; i<3; i++) {
+  // blink oled
+  /*for (int i=0; i<3; i++) {
     SSD1306_send_cmd(SSD1306_SET_ALL_ON);
     sleep_ms(500);
     SSD1306_send_cmd(SSD1306_SET_ENTIRE_ON);
     sleep_ms(500);
-  }
+  }*/
   
+  // write some well known text on oled
   char text[] = "Hello World";
   WriteString(10, 10, text);
   render(&frame_area);  
@@ -68,12 +70,12 @@ int main() {
     uint32_t now = millis();
 
     // live led (green)
-    if (led && ((now - tLed) >= 50)) {
+    if (led && ((now - tLed) >= 10)) {
       led = false;
       g = 0x00;
       put_pixel(urgb_u32(r,g,b));
     }
-    if (!led && ((now - tLed) > 1000)) {
+    if (!led && ((now - tLed) > 2000)) {
       led = true;
       g = 0x10;
       put_pixel(urgb_u32(r,g,b));
@@ -84,6 +86,19 @@ int main() {
       printf("%02d:%02d:%02d\n", h, m, s);
       
       tLed = now;
+    }
+
+    // button state test
+    ButtonState btn = button_poll(now);
+    switch (btn) {
+      case BTNST_PRESSED:
+        printf("Button pressed\n");
+        break;
+      case BTNST_LONG_PRESSED:
+        printf("button long pressed\n");
+        break;
+      default:
+        break;
     }
 
     // trigger
