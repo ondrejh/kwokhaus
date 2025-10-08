@@ -19,6 +19,7 @@ pico_sdk_init()
 # rest of your project
 add_executable(${PROJECT_NAME}
   main.c
+  fonts.c
   display.c
   board.c
   rtc.c

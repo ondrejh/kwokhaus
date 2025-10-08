@@ -106,7 +106,7 @@ void SSD1306_scroll(bool on) {
 
 // Pixel
 void SetPixel(int x,int y, bool on) {
-    assert(x >= 0 && x < SSD1306_WIDTH && y >=0 && y < SSD1306_HEIGHT);
+  if (x >= 0 && x < SSD1306_WIDTH && y >=0 && y < SSD1306_HEIGHT) {
 
     // The calculation to determine the correct bit to set depends on which address
     // mode we are in. This code assumes horizontal
@@ -129,6 +129,42 @@ void SetPixel(int x,int y, bool on) {
         byte &= ~(1 << (y % 8));
 
     disp_buf[byte_idx] = byte;
+  }
+}
+
+#define FONT FreeMono9pt7b
+uint8_t PutChar(int x, int y, char c) {
+  GFXglyph gl = FONT.glyph[c - FONT.first];
+
+  uint8_t *bm = &FONT.bitmap[gl.bitmapOffset];
+  uint8_t w = gl.width;
+  uint8_t h = gl.height;
+  uint16_t pt = w * h;
+  uint8_t b = pt / 8 + ((pt % 8 > 0) ? 1 : 0);
+  uint8_t xadv = gl.xAdvance;
+  int8_t xoff = gl.xOffset;
+  int8_t yoff = gl.yOffset;
+
+  uint8_t m = 0;
+  uint8_t bt = 0;
+  for (int y=0; y<h; y++) {
+    for (int x=0; x<w; x++) {
+      m >>= 1;
+      if (m == 0) {
+        bt = *bm++;
+        m = 0x80;
+      }
+      SetPixel(x + gl.xOffset, y + gl.yOffset, bt & m);
+    }
+  }
+
+  return xadv;
+}
+
+void PutString(int x, int y, char *s) {
+  while ((*s != '\0') && (x < SSD1306_WIDTH)) {
+    x += PutChar(x, y, *s++);
+  }
 }
 
 // Line - Basic Bresenhams.

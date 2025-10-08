@@ -15,6 +15,7 @@
 #include "ws2812.h"
 
 #include "config.h"
+#include "fonts.h"
 #include "display.h"
 #include "rtc.h"
 #include "board.h"

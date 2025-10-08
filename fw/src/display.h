@@ -61,6 +61,8 @@ void render(struct render_area *area);
 void SSD1306_scroll(bool on);
 
 void SetPixel(int x,int y, bool on);
+uint8_t PutChar(int x, int y, char c);
+void PutString(int x, int y, char *s);
 void DrawLine(int x0, int y0, int x1, int y1, bool on);
 int GetFontIndex(uint8_t ch);
 void WriteChar(int16_t x, int16_t y, uint8_t ch);
