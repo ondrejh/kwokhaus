@@ -132,11 +132,11 @@ void SetPixel(int x,int y, bool on) {
   }
 }
 
-#define FONT FreeMono9pt7b
+//#define FONT FreeMono9pt7b
 uint8_t PutChar(int x, int y, char c) {
-  GFXglyph gl = FONT.glyph[c - FONT.first];
+  GFXglyph gl = FONT->glyph[c - FONT->first];
 
-  uint8_t *bm = &FONT.bitmap[gl.bitmapOffset];
+  uint8_t *bm = &FONT->bitmap[gl.bitmapOffset];
   uint8_t w = gl.width;
   uint8_t h = gl.height;
   uint16_t pt = w * h;
@@ -147,14 +147,14 @@ uint8_t PutChar(int x, int y, char c) {
 
   uint8_t m = 0;
   uint8_t bt = 0;
-  for (int y=0; y<h; y++) {
-    for (int x=0; x<w; x++) {
+  for (int yy=0; yy<h; yy++) {
+    for (int xx=0; xx<w; xx++) {
       m >>= 1;
       if (m == 0) {
         bt = *bm++;
         m = 0x80;
       }
-      SetPixel(x + gl.xOffset, y + gl.yOffset, bt & m);
+      SetPixel(x + xx + gl.xOffset, y + yy + gl.yOffset, bt & m);
     }
   }
 

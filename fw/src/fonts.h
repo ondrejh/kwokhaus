@@ -1,7 +1,6 @@
 #ifndef __FONTS_H__
 #define __FONTS_H__
 
-#include <stdint.h>
 
 /// Font data stored PER GLYPH
 typedef struct {
@@ -23,9 +22,15 @@ typedef struct {
 } GFXfont;
 
 // Free Mono 9pt 7b 
-extern const uint8_t FreeMono9pt7bBitmaps[];
-extern const GFXglyph FreeMono9pt7bGlyphs[];
-extern const GFXfont FreeMono9pt7b;
-// Approx. 1516 bytes
+extern const GFXfont FreeMono9pt7b; // Approx. 1516 bytes
+
+// Free Mono 24pt 7b
+// extern const GFXfont FreeMono24pt7b; // Approx. 6330 bytes
+
+// Free Mono Bold 18pt 7b
+extern const GFXfont FreeMonoBold18pt7b; // Approx. 4485 bytes
+
+// Active font pointer
+extern const GFXfont *FONT;
 
 #endif // __FONTS_H__

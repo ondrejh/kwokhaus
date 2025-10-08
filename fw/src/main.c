@@ -51,12 +51,15 @@ void init(void) {
   
   // write some well known text on oled
   char text[] = "Hello World";
-  WriteString(10, 10, text);
+  //WriteString(10, 10, text);
   for (int i=0; i<SSD1306_WIDTH-1; i++) {
-    SetPixel(i, 32, true);
+    SetPixel(i, 0, true);
+    SetPixel(i, SSD1306_HEIGHT-1, true);
   }
-  PutChar(10, 40, 'A');
-  PutString(40, 40, "Ahoj");
+  //PutChar(64, 32, 'A');
+  //PutString(0, 63, "Ahoj");
+  FONT = &FreeMonoBold18pt7b;
+  PutString(0, 42, "00:00");
   render(&frame_area);  
 }
 
