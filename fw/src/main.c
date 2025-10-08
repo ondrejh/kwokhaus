@@ -1,7 +1,20 @@
 #include "includes.h"
 
+void disp_splash(void) {
+  int y = 27, x = 0;
+  display_clear();
+  display_set_font(&FreeMonoBold18pt7b);
+  display_string(x, y, "Kwak");
+  display_string(x + 35, y + FONT->yAdvance, "haus");
+  display_show();
+}
 
-uint8_t buf[SSD1306_BUF_LEN];
+void disp_time(void) {
+  display_clear();
+  display_set_font(&FreeMonoBold18pt7b);
+  display_string(10, 44, "00:00");
+  display_show();
+}
 
 void init(void) {
   // Initialize outputs
@@ -30,37 +43,9 @@ void init(void) {
   // Initialize onboard NeoPixel
   ws2812_init(16);
 
+  // Initialize display
   SSD1306_init();
-  struct render_area frame_area = {
-    start_col : 0,
-    end_col : SSD1306_WIDTH - 1,
-    start_page : 0,
-    end_page :SSD1306_NUM_PAGES - 1,
-  };
-
-  calc_render_area_buflen(&frame_area);
-  render(&frame_area);
-
-  // blink oled
-  /*for (int i=0; i<3; i++) {
-    SSD1306_send_cmd(SSD1306_SET_ALL_ON);
-    sleep_ms(500);
-    SSD1306_send_cmd(SSD1306_SET_ENTIRE_ON);
-    sleep_ms(500);
-  }*/
-  
-  // write some well known text on oled
-  char text[] = "Hello World";
-  //WriteString(10, 10, text);
-  for (int i=0; i<SSD1306_WIDTH-1; i++) {
-    SetPixel(i, 0, true);
-    SetPixel(i, SSD1306_HEIGHT-1, true);
-  }
-  //PutChar(64, 32, 'A');
-  //PutString(0, 63, "Ahoj");
-  FONT = &FreeMonoBold18pt7b;
-  PutString(0, 42, "00:00");
-  render(&frame_area);  
+  disp_splash();
 }
 
 int main() {
@@ -124,30 +109,10 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
 
-    //led = !led;
-    //gpio_put(LED_GREEN_PIN, led);
-    //gpio_put(TRIGGER_PIN, led);
-    //put_pixel(urgb_u32(0x00, led ? 0x10 : 0x00, 0x00));
-    //sleep_ms(1000);
-  
+    // display (so far)
     if ((now - tDisp) >= 10000) {
-      //b = 0x10;
-      //put_pixel(urgb_u32(r,g,b));
-
       tDisp = now;
-
-      // display test
-      /*u8g2_ClearBuffer(&u8g2);
-      u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
-      u8g2_DrawStr(&u8g2, 0, 15, "Hello World!");
-      u8g2_SendBuffer(&u8g2);*/
-
-      //i2c_bus_scan(RTC_I2C_PORT);
-      //i2c_bus_scan(DISP_I2C_PORT);
-      //printf("\n");
-
-      //b = 0x00;
-      //put_pixel(urgb_u32(r,g,b));
+      disp_time();
     }
   }
 }

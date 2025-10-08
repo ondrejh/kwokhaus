@@ -50,6 +50,10 @@ struct render_area {
   int buflen;
 };
 
+void display_show(void);
+void display_clear(void);
+void display_set_font(const GFXfont* font);
+void display_string(int x, int y, char *s);
 
 void calc_render_area_buflen(struct render_area *area);
 void SSD1306_send_cmd(uint8_t cmd);

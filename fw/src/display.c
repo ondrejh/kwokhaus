@@ -1,7 +1,28 @@
 #include "includes.h"
 
 uint8_t disp_buf[SSD1306_BUF_LEN];
+struct render_area frame_area = {
+  start_col : 0,
+  end_col : SSD1306_WIDTH - 1,
+  start_page : 0,
+  end_page : SSD1306_NUM_PAGES - 1,
+};
 
+void display_show(void) {
+  render(&frame_area);
+}
+
+void display_clear(void) {
+  memset(disp_buf, 0x00, SSD1306_BUF_LEN);
+}
+
+void display_set_font(const GFXfont* font) {
+  FONT = font;
+}
+
+void display_string(int x, int y, char *s) {
+  PutString(x, y, s);
+}
 
 void calc_render_area_buflen(struct render_area *area) {
   area->buflen = (area->end_col - area->start_col + 1) * (area->end_page - area->start_page + 1);
@@ -69,6 +90,8 @@ void SSD1306_init() {
   SSD1306_send_cmd_list(cmds, count_of(cmds));
   
   memset(disp_buf, 0, SSD1306_BUF_LEN);
+  
+  calc_render_area_buflen(&frame_area);
 }
 
 

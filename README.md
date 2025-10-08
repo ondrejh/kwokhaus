@@ -20,8 +20,9 @@ Attempt on some eggish automation.
 
 ### Functionality and features
 
-- [ ] setting and showing clock time
-- [ ] setting trigger time
+- [ ] show time
+- [ ] set time
+- [ ] set trigger time
 - [ ] trigger on time
 - [ ] showing status (unlocked, locked, next unlock in ..)
 - [ ] remote addministration by com. port
