@@ -6,6 +6,10 @@ Attempt on some eggish automation.
 
 ## Kwakhaus
 
+### Idea (not to forget)
+
+- rubber duck splash screen
+
 ### Siple tasks
 
 - [x] trigger by pushbutton (test)
