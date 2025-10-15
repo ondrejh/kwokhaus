@@ -21,6 +21,9 @@ void display_set_font(const GFXfont* font) {
 }
 
 void display_string(int x, int y, char *s) {
+  int frm[4];
+  GetStringSize(x, y, s, frm);
+  DrawRect(frm[0], frm[1], frm[2], frm[3], false);
   PutString(x, y, s);
 }
 
@@ -184,9 +187,56 @@ uint8_t PutChar(int x, int y, char c) {
   return xadv;
 }
 
+void GetStringSize(int x, int y, char *s, int *frame) {
+  frame[0] = frame[2] = x;
+  frame[1] = frame[3] = y;
+  while ((*s != '\0') && (x < SSD1306_WIDTH)) {
+    char c = *s++;
+    GFXglyph gl = FONT->glyph[c - FONT->first];
+    int a0 = x + gl.xOffset;
+    int a1 = a0 + gl.width;
+    int b0 = y + gl.yOffset;
+    int b1 = b0 + gl.height;
+    if (a0 < frame[0]) frame[0] = a0;
+    if (a1 > frame[2]) frame[2] = a1;
+    if (b0 < frame[1]) frame[1] = b0;
+    if (b1 > frame[3]) frame[3] = b1;
+    x += gl.xAdvance;
+  }
+}
+
 void PutString(int x, int y, char *s) {
   while ((*s != '\0') && (x < SSD1306_WIDTH)) {
     x += PutChar(x, y, *s++);
+  }
+}
+
+void DrawFrame(int x0, int y0, int x1, int y1) {
+  if (x0 <= x1) {
+    for (int i=x0; i<=x1; i++) {
+      if (y0 >= 0)
+        SetPixel(i, y0, true);
+      if (y1 < SSD1306_WIDTH)
+        SetPixel(i, y1, true);
+    }
+  }
+  if (y0 <= y1) {
+    for (int i=y0; i<=y1; i++) {
+      if (x0 >= 0)
+        SetPixel(x0, i, true);
+      if (x1 < SSD1306_HEIGHT)
+        SetPixel(x1, i, true);
+    }
+  }
+}
+
+void DrawRect(int x0, int y0, int x1, int y1, bool on) {
+  if ((x0 <= x1) && (y0 <= y1)) {
+    for (int yy=y0; yy<=y1; yy++) {
+      for (int xx=x0; xx<=x1; xx++) {
+        SetPixel(xx, yy, on);
+      }
+    }
   }
 }
 
@@ -217,6 +267,7 @@ void DrawLine(int x0, int y0, int x1, int y1, bool on) {
     }
 }
 
+// simple font functions
 int GetFontIndex(uint8_t ch) {
     if (ch >= 'A' && ch <='Z') {
         return  ch - 'A' + 1;

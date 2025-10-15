@@ -66,8 +66,13 @@ void SSD1306_scroll(bool on);
 
 void SetPixel(int x,int y, bool on);
 uint8_t PutChar(int x, int y, char c);
+void GetStringSize(int x, int y, char *s, int *frame);
 void PutString(int x, int y, char *s);
+void DrawRect(int x0, int y0, int x1, int y1, bool on);
+void DrawFrame(int x0, int y0, int x1, int y1);
 void DrawLine(int x0, int y0, int x1, int y1, bool on);
+
+// simple font functions
 int GetFontIndex(uint8_t ch);
 void WriteChar(int16_t x, int16_t y, uint8_t ch);
 void WriteString(int16_t x, int16_t y, char *str);

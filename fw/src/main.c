@@ -9,10 +9,29 @@ void disp_splash(void) {
   display_show();
 }
 
-void disp_time(void) {
+#define TMASK_NONE    0x00
+#define TMASK_HOUR    0x01
+#define TMASK_DOT     0x02
+#define TMASK_MINUTE  0x04
+#define TMASK_ALL     0x07
+
+void disp_time(uint8_t hour, uint8_t minute, uint8_t mask) {
+  char text[6] = "     ";
+
+  if ((mask & TMASK_HOUR) == 0) {
+    text[0] = (char)(hour / 10 % 10) + '0';
+    text[1] = (char)(hour % 10) + '0';
+  }
+  if ((mask & TMASK_DOT) == 0)
+    text[2] = ':';
+  if ((mask & TMASK_MINUTE) == 0) { 
+    text[3] = (char)(minute / 10 % 10) + '0';
+    text[4] = (char)(minute % 10) + '0';
+  }
+
   display_clear();
   display_set_font(&FreeMonoBold18pt7b);
-  display_string(10, 44, "00:00");
+  display_string(10, 44, text);
   display_show();
 }
 
@@ -57,6 +76,9 @@ int main() {
   uint32_t tLed = 0, tDisp = 0, tTrig = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00;
 
+  uint8_t h, m, s;
+  ds3231_get_time(&h, &m, &s);
+
   sleep_ms(100);
 
   while (true) {
@@ -74,11 +96,27 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
       printf("Hello World\r\n");
       
-      uint8_t h,m,s;
-      ds3231_get_time(&h, &m, &s);
       printf("%02d:%02d:%02d\n", h, m, s);
       
       tLed = now;
+    }
+
+    // display
+    if ((now - tDisp) >= 125) {
+      static uint8_t cnt = 0;
+      switch (cnt & 0x07) {
+        case 0:
+          ds3231_get_time(&h, &m, &s);
+          disp_time(h, m, TMASK_NONE);
+          break;
+        case 4:
+          disp_time(h, m, TMASK_DOT);
+          break;
+        default:
+          break;
+      }
+      cnt ++;
+      tDisp = now;
     }
 
     // button state test
@@ -109,10 +147,10 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
 
-    // display (so far)
+    /*// display (so far)
     if ((now - tDisp) >= 10000) {
       tDisp = now;
       disp_time();
-    }
+    }*/
   }
 }

@@ -13,6 +13,8 @@ Attempt on some eggish automation.
 ### Siple tasks
 
 - [x] trigger by pushbutton (test)
+- [ ] draw display function chart
+- [ ] create and test function to store data in flash (or find lib)
 - [ ] simple pushbutton (any bool input) filtering
 - [ ] measure trigger charge voltage
 
@@ -24,7 +26,7 @@ Attempt on some eggish automation.
 
 ### Functionality and features
 
-- [ ] show time
+- [x] show time
 - [ ] set time
 - [ ] set trigger time
 - [ ] trigger on time
