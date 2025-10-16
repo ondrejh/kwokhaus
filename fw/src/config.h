@@ -5,6 +5,7 @@
 #define LED_GREEN_PIN 12
 #define BUTTON_PIN 13
 #define TRIGGER_PIN 14
+#define LOCK_PIN 15
 #define SENSE_ADC_PIN 26
 
 // Display I2C pins and instance

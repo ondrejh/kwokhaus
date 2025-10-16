@@ -62,6 +62,8 @@ void init(void) {
   gpio_init(BUTTON_PIN);
   gpio_set_dir(BUTTON_PIN, GPIO_IN);
   gpio_set_pulls(BUTTON_PIN, true, false);
+  gpio_set_dir(LOCK_PIN, GPIO_IN);
+  gpio_set_pulls(LOCK_PIN, true, false);
 
   // Initialize display I2C
   i2c_init(DISP_I2C_PORT, 400 * 1000);
@@ -86,13 +88,6 @@ void init(void) {
 }
 
 #define TIME_POLLING_PERIOD 1000 // ms
-
-typedef enum {
-  EVENT_NONE,
-  EVENT_PRESS,
-  EVENT_LONGPRESS,
-  EVENT_TIME,
-} event_t;
 
 typedef struct {
   uint8_t h;
@@ -119,16 +114,8 @@ int main() {
 
   while (true) {
     int32_t now = millis();
-    event_t event = EVENT_NONE;
 
-    // collect button events
-    if (event == EVENT_NONE) {
-      ButtonState btn = button_poll(now);
-      if (btn == BTNST_PRESSED)
-        event = EVENT_PRESS;
-      else if (btn == BTNST_LONG_PRESSED)
-        event = EVENT_LONGPRESS;
-    }
+    event_t event = get_input_event(now);
 
     // test time update event
     if ((event == EVENT_NONE) && ((now - tTim) >= TIME_POLLING_PERIOD)) {
@@ -185,6 +172,12 @@ int main() {
         break;
       case EVENT_TIME:
         printf("Time %02d:%02d\n", tloc.h, tloc.m);
+        break;
+      case EVENT_LOCK:
+        printf("Lock locked\n");
+        break;
+      case EVENT_UNLOCK:
+        printf("Lock unlocked\n");
         break;
       case EVENT_NONE:
       default:

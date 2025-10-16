@@ -19,5 +19,6 @@
 #include "display.h"
 #include "rtc.h"
 #include "board.h"
+#include "events.h"
 
 #endif // __INCLUDES_H__

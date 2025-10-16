@@ -1,5 +1,29 @@
 #include "includes.h"
 
+LockState lock_poll(uint32_t now) {
+  static LockState lock = LOCK_UNKNOWN;
+  static int cnt = 0;
+  static uint32_t t = 0;
+
+  if (t != now) {
+    t = now;
+    bool lck = gpio_get(LOCK_PIN);
+    if (lck && (lock != LOCK_LOCKED)) {
+      cnt ++;
+      if (cnt >= LOCK_FILTER_T)
+        lock = LOCK_LOCKED;
+    }
+    else if (!lck && (lock != LOCK_UNLOCKED)) {
+      cnt ++;
+      if (cnt >= LOCK_FILTER_T)
+        lock = LOCK_UNLOCKED;
+    }
+    else
+      cnt = 0;
+  }
+  
+  return lock;
+}
 
 ButtonState button_poll(uint32_t now) {
   static uint32_t t = 0;

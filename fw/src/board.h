@@ -5,6 +5,13 @@
 
 #define BTN_MIN_PULSE 10
 #define BTN_HOLD_PULSE 600
+#define LOCK_FILTER_T 200
+
+typedef enum {
+  LOCK_UNKNOWN,
+  LOCK_LOCKED,
+  LOCK_UNLOCKED,
+} LockState;
 
 typedef enum {
   BTNST_UNKNOWN,
@@ -15,6 +22,7 @@ typedef enum {
   BTNST_LONG_PRESSED,
 } ButtonState;
 
+LockState lock_poll(uint32_t t);
 ButtonState button_poll(uint32_t t);
 
 #endif // __BOARD_H__

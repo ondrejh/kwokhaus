@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}
   display.c
   board.c
   rtc.c
+  events.c
   ws2812.c
   ws2812.pio
 )
