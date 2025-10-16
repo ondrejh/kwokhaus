@@ -8,12 +8,12 @@ LockState lock_poll(uint32_t now) {
   if (t != now) {
     t = now;
     bool lck = gpio_get(LOCK_PIN);
-    if (lck && (lock != LOCK_LOCKED)) {
+    if (!lck && (lock != LOCK_LOCKED)) {
       cnt ++;
       if (cnt >= LOCK_FILTER_T)
         lock = LOCK_LOCKED;
     }
-    else if (!lck && (lock != LOCK_UNLOCKED)) {
+    else if (lck && (lock != LOCK_UNLOCKED)) {
       cnt ++;
       if (cnt >= LOCK_FILTER_T)
         lock = LOCK_UNLOCKED;
