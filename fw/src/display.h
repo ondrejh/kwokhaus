@@ -53,7 +53,7 @@ struct render_area {
 void display_show(void);
 void display_clear(void);
 void display_set_font(const GFXfont* font);
-void display_string(int x, int y, char *s);
+void display_string(int x, int y, char *s, bool inv);
 
 void calc_render_area_buflen(struct render_area *area);
 void SSD1306_send_cmd(uint8_t cmd);
@@ -65,9 +65,9 @@ void render(struct render_area *area);
 void SSD1306_scroll(bool on);
 
 void SetPixel(int x,int y, bool on);
-uint8_t PutChar(int x, int y, char c);
+uint8_t PutChar(int x, int y, char c, bool inv);
 void GetStringSize(int x, int y, char *s, int *frame);
-void PutString(int x, int y, char *s);
+void PutString(int x, int y, char *s, bool inv);
 void DrawRect(int x0, int y0, int x1, int y1, bool on);
 void DrawFrame(int x0, int y0, int x1, int y1);
 void DrawLine(int x0, int y0, int x1, int y1, bool on);

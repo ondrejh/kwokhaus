@@ -20,11 +20,11 @@ void display_set_font(const GFXfont* font) {
   FONT = font;
 }
 
-void display_string(int x, int y, char *s) {
+void display_string(int x, int y, char *s, bool inv) {
   int frm[4];
   GetStringSize(x, y, s, frm);
-  DrawRect(frm[0], frm[1], frm[2], frm[3], false);
-  PutString(x, y, s);
+  DrawRect(frm[0], frm[1], frm[2], frm[3], inv);
+  PutString(x, y, s, inv);
 }
 
 void calc_render_area_buflen(struct render_area *area) {
@@ -159,7 +159,7 @@ void SetPixel(int x,int y, bool on) {
 }
 
 //#define FONT FreeMono9pt7b
-uint8_t PutChar(int x, int y, char c) {
+uint8_t PutChar(int x, int y, char c, bool inv) {
   GFXglyph gl = FONT->glyph[c - FONT->first];
 
   uint8_t *bm = &FONT->bitmap[gl.bitmapOffset];
@@ -180,7 +180,8 @@ uint8_t PutChar(int x, int y, char c) {
         bt = *bm++;
         m = 0x80;
       }
-      SetPixel(x + xx + gl.xOffset, y + yy + gl.yOffset, bt & m);
+      bool pix = ((bt & m) != 0) ^ inv;
+      SetPixel(x + xx + gl.xOffset, y + yy + gl.yOffset, pix);
     }
   }
 
@@ -205,9 +206,9 @@ void GetStringSize(int x, int y, char *s, int *frame) {
   }
 }
 
-void PutString(int x, int y, char *s) {
+void PutString(int x, int y, char *s, bool inv) {
   while ((*s != '\0') && (x < SSD1306_WIDTH)) {
-    x += PutChar(x, y, *s++);
+    x += PutChar(x, y, *s++, inv);
   }
 }
 
@@ -216,7 +217,7 @@ void DrawFrame(int x0, int y0, int x1, int y1) {
     for (int i=x0; i<=x1; i++) {
       if (y0 >= 0)
         SetPixel(i, y0, true);
-      if (y1 < SSD1306_WIDTH)
+      if (y1 < SSD1306_HEIGHT)
         SetPixel(i, y1, true);
     }
   }
@@ -224,7 +225,7 @@ void DrawFrame(int x0, int y0, int x1, int y1) {
     for (int i=y0; i<=y1; i++) {
       if (x0 >= 0)
         SetPixel(x0, i, true);
-      if (x1 < SSD1306_HEIGHT)
+      if (x1 < SSD1306_WIDTH)
         SetPixel(x1, i, true);
     }
   }
