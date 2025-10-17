@@ -79,6 +79,9 @@ void init(void) {
   gpio_pull_up(RTC_I2C_SDA_PIN);
   gpio_pull_up(RTC_I2C_SCL_PIN);
 
+  // Initialize communication
+  comm_init();
+
   // Initialize onboard NeoPixel
   ws2812_init(16);
 

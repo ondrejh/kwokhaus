@@ -18,6 +18,7 @@
 #include "fonts.h"
 #include "display.h"
 #include "rtc.h"
+#include "comm.h"
 #include "board.h"
 #include "events.h"
 

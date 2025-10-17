@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}
   display.c
   board.c
   rtc.c
+  comm.c
   events.c
   ws2812.c
   ws2812.pio
@@ -35,6 +36,7 @@ target_link_libraries(${PROJECT_NAME}
   pico_stdlib
   hardware_pio
   hardware_i2c
+  hardware_uart
 )
 
 # Enable USB output, disable UART if desired
