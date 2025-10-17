@@ -11,27 +11,41 @@
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
 
-#define UART_RX_BUFFLEN 64
+#define UART_BUFFLEN 256
 typedef struct {
-  uint8_t bufinp;
-  uint8_t bufoutp;
-  uint8_t buff[UART_RX_BUFFLEN];
+  volatile int bufinp;
+  volatile int bufoutp;
+  uint8_t buff[UART_BUFFLEN];
 } buff_t;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
+buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
+volatile bool tx_busy = false;
 
-// RX interrupt handler
-void on_uart_rx() {
+// uart interrupt handler
+void on_uart_irq() {
   while (uart_is_readable(UART_ID)) {
     uint8_t ch = uart_getc(UART_ID);
-    uint8_t p = (uart_rx_buff.bufinp + 1) % UART_RX_BUFFLEN;
+    int p = (uart_rx_buff.bufinp + 1) % UART_BUFFLEN;
     if (p != uart_rx_buff.bufoutp) {
       uart_rx_buff.buff[p] = ch;
       uart_rx_buff.bufinp = p;
     }
-    // echo (test)
-    if (uart_is_writable(UART_ID)) {
-      uart_putc(UART_ID, ch);
+  }
+
+  if (uart_is_writable(UART_ID)) {
+    if (uart_tx_buff.bufinp != uart_tx_buff.bufoutp) {
+      int p = (uart_tx_buff.bufoutp + 1) % UART_BUFFLEN;
+      uart_putc_raw(UART_ID, uart_tx_buff.buff[p]);
+      uart_tx_buff.bufoutp = p;
+      if (!tx_busy) {
+        tx_busy = true;
+        uart_set_irq_enables(UART_ID, true, true);
+      }
+    }
+    else {
+      tx_busy = false;
+      uart_set_irq_enables(UART_ID, true, false);
     }
   }
 }
@@ -47,7 +61,27 @@ void comm_init(void) {
   uart_set_fifo_enabled(UART_ID, false);
 
   int UART_IRQ = UART_ID == uart0 ? UART0_IRQ : UART1_IRQ;
-  irq_set_exclusive_handler(UART_IRQ, on_uart_rx);
+  irq_set_exclusive_handler(UART_IRQ, on_uart_irq);
   irq_set_enabled(UART_IRQ, true);
   uart_set_irq_enables(UART_ID, true, false);
+}
+
+void comm_write(uint8_t *msg, int len) {
+  for (int i = 0; i < len; i++) {
+    uint8_t ch = *msg++;
+    int p = (uart_tx_buff.bufinp + 1) % UART_BUFFLEN;
+    if (p != uart_tx_buff.bufoutp) {
+      uart_tx_buff.buff[p] = ch;
+      uart_tx_buff.bufinp = p;
+    }
+    if (!tx_busy) {
+      tx_busy = true;
+      uart_set_irq_enables(UART_ID, true, true);
+      on_uart_irq();
+    }
+  }
+}
+
+bool comm_tx_busy(void) {
+  return tx_busy;
 }

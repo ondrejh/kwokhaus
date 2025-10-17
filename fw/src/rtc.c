@@ -2,6 +2,16 @@
 
 #define DS3231_ADDR 0x68
 
+uint8_t utc2loc(uint8_t h, int8_t z) {
+  int tmp = h - z;
+  return (tmp < 0) ? tmp + 24 : tmp;
+}
+
+uint8_t loc2utc(uint8_t h, uint8_t z) {
+  int tmp = h + z;
+  return (tmp < 0) ? tmp + 24 : tmp;
+}
+
 // Pomocné funkce: BCD <-> binární
 uint8_t bcd2dec(uint8_t val) {
     return (val >> 4) * 10 + (val & 0x0F);

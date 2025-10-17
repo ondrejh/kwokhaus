@@ -57,6 +57,8 @@ void init(void) {
   // Initialize outputs
   gpio_init(LED_GREEN_PIN);
   gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
+  gpio_put(LED_GREEN_PIN, true);
+  sleep_ms(1234);
   gpio_init(TRIGGER_PIN);
   gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
   gpio_init(BUTTON_PIN);
@@ -93,10 +95,10 @@ void init(void) {
 #define TIME_POLLING_PERIOD 1000 // ms
 
 typedef struct {
-  uint8_t h;
-  uint8_t m;
-  uint8_t s;
-  uint8_t z;
+  int8_t h;
+  int8_t m;
+  int8_t s;
+  int8_t z;
 } tim_t;
 
 int main() {
@@ -111,7 +113,7 @@ int main() {
   tim_t tloc = {.z=2,};
 
   ds3231_get_time(&tloc.h, &tloc.m, &tloc.s);
-  tloc.h = (tloc.h - tloc.z) % 24;
+  tloc.h = utc2loc(tloc.h, tloc.z);
 
   tDisp = millis() + 3000; // some time for splash screen
 
@@ -122,9 +124,9 @@ int main() {
 
     // test time update event
     if ((event == EVENT_NONE) && ((now - tTim) >= TIME_POLLING_PERIOD)) {
-      uint8_t h, m;
+      int8_t h, m;
       ds3231_get_time(&h, &m, &tloc.s);
-      h = (h - tloc.z) % 24;
+      h = utc2loc(h, tloc.z);
       if ((m != tloc.m) || (h != tloc.h))
         event = EVENT_TIME;
       tloc.h = h;
@@ -139,6 +141,8 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 2000)) {
+      //if (!comm_tx_busy)
+        comm_write("ahoj\n", 5);
       led = true;
       g = 0x10;
       put_pixel(urgb_u32(r,g,b));
@@ -207,5 +211,6 @@ int main() {
       tDisp = now;
       disp_time();
     }*/
+    gpio_put(LED_GREEN_PIN, true);//false);//comm_tx_busy());
   }
 }
