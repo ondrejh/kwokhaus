@@ -57,8 +57,6 @@ void init(void) {
   // Initialize outputs
   gpio_init(LED_GREEN_PIN);
   gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
-  gpio_put(LED_GREEN_PIN, true);
-  sleep_ms(1234);
   gpio_init(TRIGGER_PIN);
   gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
   gpio_init(BUTTON_PIN);
@@ -101,6 +99,9 @@ typedef struct {
   int8_t z;
 } tim_t;
 
+#define COMM_BUFLEN 128
+uint8_t comm_buff[COMM_BUFLEN];
+
 int main() {
   stdio_init_all();         // Inicializace USB CDC
 
@@ -134,6 +135,42 @@ int main() {
       tTim = now;
     }
 
+    // receive comm
+    int comrx = comm_poll(now, 1000, comm_buff, COMM_BUFLEN);
+    if (comrx) { // echo test
+      // remove tailing new line
+      uint8_t ch = 0;
+      for (int i=comrx-1; i>0; i--) {
+        ch = comm_buff[i];
+        if ((ch == '\n') || (ch == '\r'))
+          continue;
+        comrx = i+1;
+        break;
+      }
+      comm_buff[comrx] = '\0';
+      // send notification
+      printf("RX: %s\n", comm_buff);
+
+      // add new line and "ECHO: "
+      if (comrx < (COMM_BUFLEN - 8)) {
+        memmove(comm_buff + 6, comm_buff, comrx);
+        sprintf(comm_buff, "ECHO:");
+        comm_buff[5] = ' ';
+        comrx += 6;
+        comm_buff[comrx++] = '\r';
+        comm_buff[comrx++] = '\n';
+      }
+      comm_buff[comrx] = '\0';
+      // send echo
+      if (!comm_tx_busy()) {
+        comm_write(comm_buff, comrx);
+        // send notification
+        if (comrx > 2)
+          comm_buff[comrx-2] = '\0';
+        printf("TX: %s\n", comm_buff);
+      }
+    }
+
     // live led (green)
     if (led && ((now - tLed) >= 10)) {
       led = false;
@@ -141,8 +178,9 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 2000)) {
-      //if (!comm_tx_busy)
-        comm_write("ahoj\n", 5);
+      //if (!comm_tx_busy()) {
+      //  comm_write("Hello UART\r\n", 12);
+      //}
       led = true;
       g = 0x10;
       put_pixel(urgb_u32(r,g,b));
@@ -211,6 +249,6 @@ int main() {
       tDisp = now;
       disp_time();
     }*/
-    gpio_put(LED_GREEN_PIN, true);//false);//comm_tx_busy());
+    gpio_put(LED_GREEN_PIN, comm_tx_busy());
   }
 }

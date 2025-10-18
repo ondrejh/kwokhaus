@@ -75,8 +75,6 @@ void comm_write(uint8_t *msg, int len) {
       uart_tx_buff.bufinp = p;
     }
     if (!tx_busy) {
-      tx_busy = true;
-      uart_set_irq_enables(UART_ID, true, true);
       on_uart_irq();
     }
   }
@@ -84,4 +82,27 @@ void comm_write(uint8_t *msg, int len) {
 
 bool comm_tx_busy(void) {
   return tx_busy;
+}
+
+int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
+  static int bufp = 0;
+  static uint32_t trx = 0;
+  uint8_t ch = 0;
+  while (uart_rx_buff.bufinp != uart_rx_buff.bufoutp) {
+    int p = (uart_rx_buff.bufoutp + 1) % UART_BUFFLEN;
+    ch = uart_rx_buff.buff[p];
+    uart_rx_buff.bufoutp = p;
+    if (bufp >= max)
+      bufp = max - 1;
+    rxbuf[bufp++] = ch;
+    trx = now;
+    if (ch == '\n')
+      break;
+  }
+  if ((ch == '\n') || ((bufp > 0) && ((now - trx) > tout))) {
+    int ret = bufp;
+    bufp = 0;
+    return ret;
+  }
+  return 0;
 }
