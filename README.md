@@ -15,17 +15,18 @@ Attempt on some eggish automation.
 - [x] trigger by pushbutton (test)
 - [ ] draw display function chart
 - [ ] create and test function to store data in flash (or find lib)
-- [ ] simple pushbutton (any bool input) filtering
+- [x] simple pushbutton (any bool input) filtering
 - [ ] measure trigger charge voltage
 
 ### Hardware needed
 
 - [x] rtc module
 - [x] display
-- [ ] communication port (uart)
+- [x] communication port (uart)
 
 ### Functionality and features
 
+- [ ] filter incoming messages
 - [x] show time
 - [ ] set time
 - [ ] set trigger time
