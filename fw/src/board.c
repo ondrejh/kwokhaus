@@ -1,7 +1,9 @@
 #include "includes.h"
 
+LockState lock = LOCK_UNKNOWN;
+
 LockState lock_poll(uint32_t now) {
-  static LockState lock = LOCK_UNKNOWN;
+  //static LockState lock = LOCK_UNKNOWN;
   static int cnt = 0;
   static uint32_t t = 0;
 

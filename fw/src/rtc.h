@@ -1,6 +1,13 @@
 #ifndef __RTC_H__
 #define __RTC_H__
 
+typedef struct {
+  int8_t h;
+  int8_t m;
+  int8_t s;
+  int8_t z;
+} tim_t;
+
 uint8_t utc2loc(uint8_t h, int8_t z);
 uint8_t loc2utc(uint8_t h, uint8_t z);
 

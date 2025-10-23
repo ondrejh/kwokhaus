@@ -2,11 +2,16 @@
 
 #define DS3231_ADDR 0x68
 
+// globalni promenna s aktualnim mistnim casem
+tim_t tloc = {.z=2,};
+
+// prevod casu (hodin, s pulkama z afgose nepocitame) z utc do mistniho
 uint8_t utc2loc(uint8_t h, int8_t z) {
   int tmp = h - z;
   return (tmp < 0) ? tmp + 24 : tmp;
 }
 
+// prevod lokalniho do utac (zase jen hodiny)
 uint8_t loc2utc(uint8_t h, uint8_t z) {
   int tmp = h + z;
   return (tmp < 0) ? tmp + 24 : tmp;

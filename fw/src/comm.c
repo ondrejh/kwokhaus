@@ -1,3 +1,4 @@
+#include "includes.h"
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
@@ -17,6 +18,10 @@ typedef struct {
   volatile int bufoutp;
   uint8_t buff[UART_BUFFLEN];
 } buff_t;
+
+// collect all the states needed to export
+extern tim_t tloc;
+extern LockState lock;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
 buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
@@ -84,6 +89,9 @@ bool comm_tx_busy(void) {
   return tx_busy;
 }
 
+// tight loop function
+// check if there is a new char received
+// in case of timeout return buffer of received characters
 int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
   static int bufp = 0;
   static uint32_t trx = 0;
@@ -96,13 +104,79 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
       bufp = max - 1;
     rxbuf[bufp++] = ch;
     trx = now;
-    if (ch == '\n')
-      break;
+    //if (ch == '\n')
+    //  break;
   }
-  if ((ch == '\n') || ((bufp > 0) && ((now - trx) > tout))) {
+  //if ((ch == '\n') || ((bufp > 0) && ((now - trx) > tout))) {
+  if ((bufp > 0) && ((now - trx) > tout)) {
     int ret = bufp;
     bufp = 0;
     return ret;
   }
   return 0;
 }
+
+int sprint_status(uint8_t *buff, int max) {
+  snprintf(buff, max, "%s: %02d:%02d(%+d) %s I'm all right Jack. Keep your hands off my stack.", config.name, tloc.h, tloc.m, tloc.z, lock==LOCK_UNLOCKED? "Unlocked" : "Locked");
+  return (strlen(buff));  
+}
+
+// parse input data, use it, maybe create output (same buffer)
+int comm_parse(uint8_t *buff, int len, int max) {
+  if ((len <= 0) || (len >= max))
+    return 0;
+
+  buff[max-1] = '\0'; // just in case
+
+  // search for name
+  uint8_t *p = strstr(buff, config.name);
+  if (p == NULL) // if not found bye
+    return 0;
+
+  int nlen = len - (p - buff);
+  memmove(buff, p, nlen);
+
+  p = buff + strlen(config.name);
+  int st = 0;
+  while(p < buff + nlen) {
+    uint8_t ch = *p++;
+    switch (ch) {
+      case '?':
+        nlen = sprint_status(buff, max);
+        break;
+      default:
+        break;
+    }
+  }
+  return nlen;
+}
+
+// is it printable character?
+bool is_printable_ascii(uint8_t c) {
+  if (c < 0x20)
+    return false;
+  if (c > 0x7E)
+    return false;
+  return true;
+}
+
+// strip buffer content from non printable characters
+int strip(uint8_t *buff, int len) {
+  int beg, end, nlen = 0;
+  for (beg = 0; beg < len; beg ++) {
+    if (is_printable_ascii(buff[beg]))
+      break;
+  }
+  for (end = len-1; end >= 0; end --) {
+    if (is_printable_ascii(buff[end]))
+      break;
+  }
+  if (beg < end) {
+    nlen = end + 1 - beg;
+    memmove(buff, &buff[beg], nlen);
+  }
+  
+  buff[end] = '\0';
+  return nlen;
+}
+

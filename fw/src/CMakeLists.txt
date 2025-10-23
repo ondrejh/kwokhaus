@@ -22,6 +22,7 @@ add_executable(${PROJECT_NAME}
   fonts.c
   display.c
   board.c
+  nvdata.c
   rtc.c
   comm.c
   events.c

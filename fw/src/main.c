@@ -79,6 +79,9 @@ void init(void) {
   gpio_pull_up(RTC_I2C_SDA_PIN);
   gpio_pull_up(RTC_I2C_SCL_PIN);
 
+  // Initialize nvdata (load configuration)
+  config_init();
+
   // Initialize communication
   comm_init();
 
@@ -92,12 +95,15 @@ void init(void) {
 
 #define TIME_POLLING_PERIOD 1000 // ms
 
-typedef struct {
+/*typedef struct {
   int8_t h;
   int8_t m;
   int8_t s;
   int8_t z;
 } tim_t;
+
+tim_t tloc = {.z=2,};*/
+extern tim_t tloc;
 
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
@@ -111,7 +117,7 @@ int main() {
   int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00;
 
-  tim_t tloc = {.z=2,};
+  //tim_t tloc = {.z=2,};
 
   ds3231_get_time(&tloc.h, &tloc.m, &tloc.s);
   tloc.h = utc2loc(tloc.h, tloc.z);
@@ -136,38 +142,23 @@ int main() {
     }
 
     // receive comm
-    int comrx = comm_poll(now, 1000, comm_buff, COMM_BUFLEN);
+    int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
     if (comrx) { // echo test
-      // remove tailing new line
-      uint8_t ch = 0;
-      for (int i=comrx-1; i>0; i--) {
-        ch = comm_buff[i];
-        if ((ch == '\n') || (ch == '\r'))
-          continue;
-        comrx = i+1;
-        break;
-      }
-      comm_buff[comrx] = '\0';
-      // send notification
-      printf("RX: %s\n", comm_buff);
+      comrx = strip(comm_buff, comrx);
+      if (comrx) {
+        comm_buff[comrx] = '\0';
+        printf("RX: %s\n", comm_buff);
 
-      // add new line and "ECHO: "
-      if (comrx < (COMM_BUFLEN - 8)) {
-        memmove(comm_buff + 6, comm_buff, comrx);
-        sprintf(comm_buff, "ECHO:");
-        comm_buff[5] = ' ';
-        comrx += 6;
-        comm_buff[comrx++] = '\r';
-        comm_buff[comrx++] = '\n';
-      }
-      comm_buff[comrx] = '\0';
-      // send echo
-      if (!comm_tx_busy()) {
-        comm_write(comm_buff, comrx);
-        // send notification
-        if (comrx > 2)
-          comm_buff[comrx-2] = '\0';
-        printf("TX: %s\n", comm_buff);
+        comrx = comm_parse(comm_buff, comrx, COMM_BUFLEN);
+        if (comrx) {
+          comm_buff[comrx] = '\0';
+          if (!comm_tx_busy()) {
+            comm_write(comm_buff, comrx);
+            printf("TX: %s\n", comm_buff);
+          }
+          else
+            printf("TX BUSY\n");
+        }
       }
     }
 

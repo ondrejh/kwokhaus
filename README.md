@@ -15,6 +15,12 @@ Attempt on some eggish automation.
 - [x] trigger by pushbutton (test)
 - [ ] draw display function chart
 - [ ] create and test function to store data in flash (or find lib)
+  - improve nvdata.c/h
+- [x] parse incoming messages
+  - [x] reply on ?
+  - [ ] T to set time
+  - [ ] Z to set zone
+  - [ ] U to set unlock time
 - [x] simple pushbutton (any bool input) filtering
 - [ ] measure trigger charge voltage
 
