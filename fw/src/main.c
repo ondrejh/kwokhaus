@@ -80,7 +80,7 @@ void init(void) {
   gpio_pull_up(RTC_I2C_SCL_PIN);
 
   // Initialize nvdata (load configuration)
-  config_init();
+  load_config(&config);
 
   // Initialize communication
   comm_init();
