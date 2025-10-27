@@ -93,16 +93,6 @@ void init(void) {
   disp_splash();
 }
 
-#define TIME_POLLING_PERIOD 1000 // ms
-
-/*typedef struct {
-  int8_t h;
-  int8_t m;
-  int8_t s;
-  int8_t z;
-} tim_t;
-
-tim_t tloc = {.z=2,};*/
 extern tim_t tloc;
 
 #define COMM_BUFLEN 128
@@ -130,7 +120,7 @@ int main() {
     event_t event = get_input_event(now);
 
     // test time update event
-    if ((event == EVENT_NONE) && ((now - tTim) >= TIME_POLLING_PERIOD)) {
+    /*if ((event == EVENT_NONE) && ((now - tTim) >= TIME_POLLING_PERIOD)) {
       int8_t h, m;
       ds3231_get_time(&h, &m, &tloc.s);
       h = utc2loc(h, tloc.z);
@@ -139,7 +129,9 @@ int main() {
       tloc.h = h;
       tloc.m = m;
       tTim = now;
-    }
+    }*/
+    if (event == EVENT_NONE)
+      event = get_time_event(now, &tloc);
 
     // receive comm
     int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
