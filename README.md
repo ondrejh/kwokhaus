@@ -13,14 +13,17 @@ Attempt on some eggish automation.
 ### Siple tasks
 
 - [x] trigger by pushbutton (test)
+- [ ] trigger on time
+- [ ] send status on idle (every 15 minutes)
+- [ ] send status on event
 - [ ] draw display function chart
-- [ ] create and test function to store data in flash (or find lib)
+- [x] create and test function to store data in flash (or find lib)
   - improve nvdata.c/h
 - [x] parse incoming messages
   - [x] reply on ?
-  - [ ] T to set time
-  - [ ] Z to set zone
-  - [ ] U to set unlock time
+  - [x] T to set time
+  - [x] Z to set zone
+  - [x] U to set unlock time
 - [x] simple pushbutton (any bool input) filtering
 - [ ] measure trigger charge voltage
 
@@ -29,13 +32,30 @@ Attempt on some eggish automation.
 - [x] rtc module
 - [x] display
 - [x] communication port (uart)
+- [ ] charge pump
+  - to charge trigger from lower voltage (single lipo)
 
 ### Functionality and features
 
-- [ ] filter incoming messages
+- [x] filter incoming messages
 - [x] show time
-- [ ] set time
-- [ ] set trigger time
+- [x] set time
+- [x] set trigger time
+- [ ] set time, trigger and zone localy (button, display)
 - [ ] trigger on time
-- [ ] showing status (unlocked, locked, next unlock in ..)
-- [ ] remote addministration by com. port
+- [ ] showing status on display (unlocked, locked, next unlock in ..)
+- [x] remote addministration by com. port
+
+### Communication protocol (so far)
+
+function | command | answer | example
+--- | --- | --- | ---
+get status | NAME ? | NAME LODKED/UNLOCKED Uhh:mm Thh:mm(z) | RX: ```KWAK ?```
+| | | | TX: ```KWAK: LOCKED U11:03 T10:08(+2)```
+set local time | NAME Thh:mm | NAME: Thh:mm | RX: ```KWAK T12:00```
+| | | | TX: ```KWAK: T12:00```
+set unlock time (local) | NAME Uhh:mm | NAME: Uhh:mm | RX: ```KWAK U12:01```
+| | | | TX: ```KWAK: U12:01```
+set zone | NAME Z+/-z | NAME: Z+/-z | RX: ```KWAK Z+1```
+| | | | TX: ```KWAK: Z+1```
+
