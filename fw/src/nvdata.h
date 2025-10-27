@@ -6,7 +6,7 @@
 #include "hardware/sync.h"
 
 // size of one flash sector (do not change - pico specific)
-#define FLASH_SECTOR_SIZE (4096)
+//#define FLASH_SECTOR_SIZE (4096) .. already defined in sdk
 #define NVDATA_FLASH_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
 #define CONF_MAX_NAME 16
