@@ -1,5 +1,7 @@
 #include "includes.h"
 
+extern tim_t tloc;
+
 void disp_splash(void) {
   int y = 27, x = 0;
   display_clear();
@@ -81,6 +83,7 @@ void init(void) {
 
   // Initialize nvdata (load configuration)
   load_config(&config);
+  tloc.z = config.zone; // use zone config
 
   // Initialize communication
   comm_init();
@@ -92,8 +95,6 @@ void init(void) {
   SSD1306_init();
   disp_splash();
 }
-
-extern tim_t tloc;
 
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];

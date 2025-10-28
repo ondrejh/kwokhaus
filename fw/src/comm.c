@@ -238,6 +238,7 @@ int comm_parse(uint8_t *buff, int len, int max) {
       config.cnt ++;
       save_config(&config);
       printf("Save %d\n", config.cnt);
+      break;
     }
 
     if (nlen != 0)

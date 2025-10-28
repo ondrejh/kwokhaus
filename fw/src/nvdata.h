@@ -14,11 +14,12 @@
 // device configuration structure
 typedef struct {
   uint32_t version;
-  uint32_t cnt;
-  tim_t topen;
-  uint8_t name[CONF_MAX_NAME + 1];
-  int8_t zone;
-  uint32_t crc;
+  uint32_t cnt; // data storage counter
+  uint32_t brper; // broadcast period
+  tim_t topen; // time to open
+  uint8_t name[CONF_MAX_NAME + 1]; // call name
+  int8_t zone; // time zone (including daylight saving)
+  uint32_t crc; // checksum
 } config_t;
 
 extern config_t config;
