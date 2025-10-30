@@ -3451,12 +3451,6 @@
 		(uuid "2c052dbd-3632-463d-a8b6-fb40ccac688c")
 	)
 	(junction
-		(at 163.83 55.88)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "6a9c4ff7-f2f7-45b9-a196-6351e805c036")
-	)
-	(junction
 		(at 151.13 55.88)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3485,12 +3479,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "968bbb53-d159-4087-9958-916e51d6ae92")
-	)
-	(junction
-		(at 176.53 38.1)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "98e22326-67da-4a8f-b0a8-6fa165ca71e5")
 	)
 	(junction
 		(at 246.38 86.36)
@@ -3632,16 +3620,6 @@
 	)
 	(wire
 		(pts
-			(xy 176.53 43.18) (xy 176.53 38.1)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0cf234e0-5017-4a2f-91e2-6ea560fa30e9")
-	)
-	(wire
-		(pts
 			(xy 144.78 99.06) (xy 147.32 99.06)
 		)
 		(stroke
@@ -3772,7 +3750,7 @@
 	)
 	(wire
 		(pts
-			(xy 176.53 38.1) (xy 163.83 38.1)
+			(xy 163.83 38.1) (xy 194.31 38.1)
 		)
 		(stroke
 			(width 0)
@@ -3992,16 +3970,6 @@
 	)
 	(wire
 		(pts
-			(xy 176.53 38.1) (xy 194.31 38.1)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "6ed1e71a-29dc-4952-8546-3e973f11716c")
-	)
-	(wire
-		(pts
 			(xy 119.38 99.06) (xy 116.84 99.06)
 		)
 		(stroke
@@ -4132,16 +4100,6 @@
 	)
 	(wire
 		(pts
-			(xy 176.53 50.8) (xy 176.53 55.88)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "916e4d38-cdd2-457d-871e-3c0ff777033e")
-	)
-	(wire
-		(pts
 			(xy 34.29 177.8) (xy 31.75 177.8)
 		)
 		(stroke
@@ -4249,16 +4207,6 @@
 			(type default)
 		)
 		(uuid "b4d8ce62-9e9d-4e57-a89a-d79f8111eb1a")
-	)
-	(wire
-		(pts
-			(xy 176.53 55.88) (xy 163.83 55.88)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b5cf1723-6a8d-400f-b2f1-b7a731ac1df7")
 	)
 	(wire
 		(pts
@@ -5293,7 +5241,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric"
 			(at 39.37 146.05 90)
 			(effects
 				(font
@@ -6044,7 +5992,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm"
+		(property "Footprint" "myLibrary:C_36x18"
 			(at 126.6952 50.8 0)
 			(effects
 				(font
@@ -6259,7 +6207,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm"
+		(property "Footprint" "myLibrary:C_36x18"
 			(at 139.3952 50.8 0)
 			(effects
 				(font
@@ -6328,7 +6276,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm"
+		(property "Footprint" "myLibrary:C_36x18"
 			(at 164.7952 50.8 0)
 			(effects
 				(font
@@ -6935,7 +6883,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "myLibrary:OLED_I2C_128x64_THT"
 			(at 254 128.27 0)
 			(effects
 				(font
@@ -7608,7 +7556,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "LED_SMD:LED_0805_2012Metric"
 			(at 228.6 55.88 90)
 			(effects
 				(font
@@ -7887,7 +7835,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm"
+		(property "Footprint" "myLibrary:C_36x18"
 			(at 152.0952 50.8 0)
 			(effects
 				(font
@@ -8267,75 +8215,6 @@
 			(project ""
 				(path "/9d6aa6a3-975e-4ebc-88ff-e01204bd60d9"
 					(reference "J2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:C_Polarized")
-		(at 176.53 46.99 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "eb667331-e4b5-4a16-b6f1-0ebaf3a5f33c")
-		(property "Reference" "C5"
-			(at 177.292 50.8 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10mF/25V"
-			(at 177.546 53.086 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm"
-			(at 177.4952 50.8 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 176.53 46.99 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Polarized capacitor"
-			(at 176.53 46.99 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "4b5a748c-7e00-4b24-8d00-80dad626e361")
-		)
-		(pin "1"
-			(uuid "2fbfbb82-0327-4c9f-9d76-234c57961326")
-		)
-		(instances
-			(project "trigger"
-				(path "/9d6aa6a3-975e-4ebc-88ff-e01204bd60d9"
-					(reference "C5")
 					(unit 1)
 				)
 			)
