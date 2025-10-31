@@ -1,4 +1,4 @@
-26730420301411086
+26732182186150513
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -106359,6 +106359,13 @@ GPS
 5
 myLibrary
 OLED_I2C_128x64
+
+
+0
+4
+4
+myLibrary
+OLED_I2C_128x64_SMD
 
 
 0

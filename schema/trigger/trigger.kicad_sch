@@ -6883,7 +6883,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "myLibrary:OLED_I2C_128x64_THT"
+		(property "Footprint" "myLibrary:OLED_I2C_128x64_SMD"
 			(at 254 128.27 0)
 			(effects
 				(font
