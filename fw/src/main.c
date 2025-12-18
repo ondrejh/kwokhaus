@@ -1,5 +1,7 @@
 #include "includes.h"
 
+extern tim_t tloc;
+
 void disp_splash(void) {
   int y = 27, x = 0;
   display_clear();
@@ -81,6 +83,7 @@ void init(void) {
 
   // Initialize nvdata (load configuration)
   load_config(&config);
+  tloc.z = config.zone; // use zone config
 
   // Initialize communication
   comm_init();
@@ -92,18 +95,6 @@ void init(void) {
   SSD1306_init();
   disp_splash();
 }
-
-#define TIME_POLLING_PERIOD 1000 // ms
-
-/*typedef struct {
-  int8_t h;
-  int8_t m;
-  int8_t s;
-  int8_t z;
-} tim_t;
-
-tim_t tloc = {.z=2,};*/
-extern tim_t tloc;
 
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
@@ -117,8 +108,6 @@ int main() {
   int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00;
 
-  //tim_t tloc = {.z=2,};
-
   ds3231_get_time(&tloc.h, &tloc.m, &tloc.s);
   tloc.h = utc2loc(tloc.h, tloc.z);
 
@@ -127,19 +116,9 @@ int main() {
   while (true) {
     int32_t now = millis();
 
-    event_t event = get_input_event(now);
-
-    // test time update event
-    if ((event == EVENT_NONE) && ((now - tTim) >= TIME_POLLING_PERIOD)) {
-      int8_t h, m;
-      ds3231_get_time(&h, &m, &tloc.s);
-      h = utc2loc(h, tloc.z);
-      if ((m != tloc.m) || (h != tloc.h))
-        event = EVENT_TIME;
-      tloc.h = h;
-      tloc.m = m;
-      tTim = now;
-    }
+    // grab events
+    event_t event = get_input_event(now); // input events
+    if (event == EVENT_NONE) event = get_time_event(now, &tloc); // (time) minute event
 
     // receive comm
     int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
@@ -210,7 +189,7 @@ int main() {
         printf("Time %02d:%02d\n", tloc.h, tloc.m);
         break;
       case EVENT_LOCK:
-        printf("Lock locked\n");
+        printf("%s Lock locked\n", config.name);
         break;
       case EVENT_UNLOCK:
         printf("Lock unlocked\n");

@@ -104,10 +104,7 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
       bufp = max - 1;
     rxbuf[bufp++] = ch;
     trx = now;
-    //if (ch == '\n')
-    //  break;
   }
-  //if ((ch == '\n') || ((bufp > 0) && ((now - trx) > tout))) {
   if ((bufp > 0) && ((now - trx) > tout)) {
     int ret = bufp;
     bufp = 0;
@@ -116,9 +113,56 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
   return 0;
 }
 
+// parse zone (+ZZ)
+int parse_zone(uint8_t *buff, int max, tim_t *tim) {
+  int z;
+  if (max < 3)
+    return -1;
+  if (sscanf(buff, "%3d", &z) == 1) {
+    if ((z >= -12) && (z < 12)) {
+      tim->z = (int8_t) z;
+      return 0;
+    }
+  }
+  return -1;
+}
+
+// parse time (HH:MM)
+int parse_time(uint8_t *buff, int max, tim_t *tim) {
+  int h, m;
+  if (max < 5)
+    return -1;
+  if (sscanf(buff, "%2d:%2d", &h, &m) == 2) {
+    if ((h >= 0) && (h < 24) && (m >= 0) && (m < 60)) {
+      tim->h = (int8_t)h;
+      tim->m = (int8_t)m;
+      tim->s = 0;
+      return 0;
+    }
+  }
+  return -1;
+}
+
+// print time into the buffer
+int sprint_time(uint8_t *buff, int max, tim_t tim, uint8_t *pref) {
+  int len = snprintf(buff, max, "%s", pref);
+  if (tim.h < 0) // time not set
+    len += snprintf(&buff[len], max-len, "---");
+  else {
+    len += snprintf(&buff[len], max-len, "%02d:%02d", tim.h, tim.m);
+    if (tim.z != 0) // zone set (print it too)
+      len += snprintf(&buff[len], max-len, "(%+d)", tim.z);
+  }
+  return len;
+}
+
+// print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
-  snprintf(buff, max, "%s: %02d:%02d(%+d) %s I'm all right Jack. Keep your hands off my stack.", config.name, tloc.h, tloc.m, tloc.z, lock==LOCK_UNLOCKED? "Unlocked" : "Locked");
-  return (strlen(buff));  
+  int len = snprintf(buff, max, "%s: ", config.name);
+  len += snprintf(&buff[len], max - len, "%s", lock==LOCK_UNLOCKED? "UNLOCKED" : "LOCKED");
+  len += sprint_time(&buff[len], max - len, config.topen, " U");
+  len += sprint_time(&buff[len], max - len, tloc, " T");
+  return len;
 }
 
 // parse input data, use it, maybe create output (same buffer)
@@ -128,25 +172,77 @@ int comm_parse(uint8_t *buff, int len, int max) {
 
   buff[max-1] = '\0'; // just in case
 
-  // search for name
-  uint8_t *p = strstr(buff, config.name);
+  // search for name including ": <name>" 
+  uint8_t name_plus[CONF_MAX_NAME + 3];
+  snprintf(name_plus, CONF_MAX_NAME + 3, ": %s", config.name);
+  uint8_t *p = strstr(buff, name_plus);
   if (p == NULL) // if not found bye
     return 0;
+  // skip name
+  p += strlen(name_plus);
 
-  int nlen = len - (p - buff);
-  memmove(buff, p, nlen);
-
-  p = buff + strlen(config.name);
-  int st = 0;
-  while(p < buff + nlen) {
+  int nlen = 0;
+  tim_t th;
+  bool changed = false;
+  while(p < buff + max) {
     uint8_t ch = *p++;
     switch (ch) {
-      case '?':
+      case '?': // get status
         nlen = sprint_status(buff, max);
+        break;
+      case 'T':
+        th.h = tloc.h;
+        th.m = tloc.m;
+        if (parse_time(p, max - (p - buff), &th) == 0) {
+          printf("Set TIME: %02d:%02d\n", th.h, th.m);
+          nlen = snprintf(buff, max, "%s: T%02d:%02d", config.name, th.h, th.m);
+          th.h = loc2utc(th.h, tloc.z);
+          // set time
+          ds3231_set_time(th.h, th.m, 0);
+        };
+        break;
+      case 'Z':
+        if (parse_zone(p, max - (p - buff), &th) == 0) {
+          printf("Set ZONE: %d\n", th.z);
+          nlen = snprintf(buff, max, "%s: Z%s%d", config.name, th.z < 0 ? "" : "+", th.z);
+          if (th.z != config.zone) {
+            // change openning time according to new zone
+            th.h = loc2utc(config.topen.h, tloc.z);
+            config.topen.h = utc2loc(th.h, th.z);
+
+            // change zone
+            config.zone = tloc.z = th.z;
+
+            // save config
+            changed = true;
+          }
+        }
+        break;
+      case 'U':
+        if (parse_time(p, max - (p - buff), &th) == 0) {
+          printf("Set UNLOCK: %02d:%02d\n", th.h, th.m);
+          nlen = snprintf(buff, max, "%s: U%02d:%02d", config.name, th.h, th.m);
+          if ((th.h != config.topen.h) || (th.m != config.topen.m)) {
+            config.topen.h = th.h;
+            config.topen.m = th.m;
+            // save config
+            changed = true;
+          }
+        };
         break;
       default:
         break;
     }
+
+    if (changed) {
+      config.cnt ++;
+      save_config(&config);
+      printf("Save %d\n", config.cnt);
+      break;
+    }
+
+    if (nlen != 0)
+      break;
   }
   return nlen;
 }

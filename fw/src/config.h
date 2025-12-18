@@ -20,4 +20,6 @@
 #define RTC_I2C_PORT i2c1
 #define RTC_I2C_ADDR 0x68
 
+#define TIME_POLLING_PERIOD 1000 // ms
+
 #endif // __CONFIG_H__

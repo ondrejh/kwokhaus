@@ -13,5 +13,6 @@ typedef enum {
 } event_t;
 
 event_t get_input_event(uint32_t now);
+event_t get_time_event(uint32_t now, tim_t *tloc);
 
 #endif // __EVENTS_H__

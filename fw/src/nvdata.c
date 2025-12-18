@@ -2,6 +2,7 @@
 
 const config_t default_config = {
   .name = "KWAK",
+  .topen = {0xFF, 0xFF, 0xFF, 0}, // not set
   .zone = 2,
 };
 
@@ -43,6 +44,6 @@ void load_config(config_t *cfg) {
   uint32_t crc = crc32((uint8_t *)cfg, sizeof(config_t) - sizeof(uint32_t));
   if (crc != cfg->crc) {
     // load default when crc doesn't fit
-    memcpy((void*)&cfg, (const void*)&default_config, sizeof(config_t));
+    memcpy((void*)cfg, (const void*)&default_config, sizeof(config_t));
   }
 }
