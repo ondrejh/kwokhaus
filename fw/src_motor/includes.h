@@ -10,6 +10,9 @@
 
 #include "pico/stdlib.h"
 
+#include "hardware/adc.h"
+#include "hardware/dma.h"
+
 #include "ws2812.pio.h"
 #include "ws2812.h"
 
