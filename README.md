@@ -4,7 +4,39 @@ Attempt on some eggish automation.
 
 # ToDo
 
+- [ ] remote controlled kwakhaus lock (status, unlock)
+- [ ] kwokhaus door motor controll
+
+
 ## Kwakhaus
+
+### Lock
+
+Simple lock controll with serial connection to Meshtastic.
+
+Source directory fw/src_lock
+
+- [x] clear project (remove display and rtc)
+- [x] check lock / unlock response
+- [x] create unlock trigger (remote only)
+- [ ] repeat status message every half an hour
+
+- [ ] connect meshtastic message to home assistant
+
+#### Communication protocol
+
+function | command | answer | example
+--- | --- | --- | ---
+get status | NAME ? | NAME LODKED/UNLOCKED | RX: ``KWAK ?```
+| | | | TX: ```KWAK: LOCKED/UNLOCKED```
+unlock | NAME UNLOCK | | RX: ```KWAK UNLOCK```
+| | | |
+status change | | NAME LOCKED/UNLOCKED | TX: ```KWAK LOCKED/UNLOCKED```
+
+#### Building, flashing
+
+From source directory ```fw``` run ```./rebuild_lock.sh```. Reset the board to bootloader by ```./utils/reset.sh```, flash it by ```./utils/flash.sh```.
+
 
 ### Idea (not to forget)
 
