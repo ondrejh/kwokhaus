@@ -21,22 +21,42 @@ Source directory fw/src_lock
 - [x] create unlock trigger (remote only)
 - [ ] repeat status message every half an hour
 
-- [ ] connect meshtastic message to home assistant
+- [x] connect meshtastic message to home assistant
+- [ ] find out how to send messages from home assistant
 
 #### Communication protocol
 
 function | command | answer | example
 --- | --- | --- | ---
-get status | NAME ? | NAME LODKED/UNLOCKED | RX: ``KWAK ?```
+get status | NAME ? | NAME: LODKED/UNLOCKED | RX: ``KWAK ?```
 | | | | TX: ```KWAK: LOCKED/UNLOCKED```
 unlock | NAME UNLOCK | | RX: ```KWAK UNLOCK```
 | | | |
-status change | | NAME LOCKED/UNLOCKED | TX: ```KWAK LOCKED/UNLOCKED```
+status change | | NAME LOCKED/UNLOCKED | TX: ```KWAK: LOCKED/UNLOCKED```
 
 #### Building, flashing
 
 From source directory ```fw``` run ```./rebuild_lock.sh```. Reset the board to bootloader by ```./utils/reset.sh```, flash it by ```./utils/flash.sh```.
 
+#### Connecting MQTT to HA
+
+Let there be ```mqtt.yaml``` file in your config. And let there be in you ```configuration.yaml``` file line ```mqtt: !include mqtt.yaml```. Than, somewhere it the file there shoul be:
+
+```
+  - name: "MediumFast Last Message"
+    unique_id: "mediumfast_last_message"
+    state_topic: !secret meshtastic_mediumfast_topic
+    value_template: >-
+      {% if value_json.payload.text is defined %}
+        {{ (value_json.payload.text) }}
+      {% else %}
+        {{ this.state }}
+      {% endif %}
+```
+
+Note that, you also need to have secret definition in your secret.yaml file. This is how HA works. Love it or hate it.
+
+From now on, youre having last MediumFast message in sensor.medium_fast_message entity. One can probably imagine how to change this for his own secret channel. Cause the otherone can probably imagine, its not a good idea to have LOCK driver connected to the public channel.
 
 ### Idea (not to forget)
 

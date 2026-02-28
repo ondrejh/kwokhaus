@@ -28,9 +28,12 @@ int main() {
 
   init();
 
-  bool led = false, trig = false;
-  int32_t tLed = 0, tTrig = 0, tTim = 0;
-  uint8_t r = 0x00, g = 0x00, b = 0x00;
+  bool led = false;
+  int32_t tLed = 0;
+
+  bool trig = false;
+  int32_t tTrig = 0, tLastTx = 0;
+  uint8_t r = 0x00, g = 0x00, b = 0x00; 
 
   while (true) {
     int32_t now = millis();
@@ -51,6 +54,7 @@ int main() {
         if (comrx) {
           comm_buff[comrx] = '\0';
           if (!comm_tx_busy()) {
+            tLastTx = now;
             comm_write(comm_buff, comrx);
             printf("TX: %s\n", comm_buff);
           }
@@ -60,6 +64,14 @@ int main() {
       }
     }
 
+    if ((!comm_tx_busy) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
+      tLastTx = now;
+      comrx = sprint_status(comm_buff, COMM_BUFLEN);
+      comm_write(comm_buff, comrx);
+      printf("TX: %s\n", comm_buff);
+    }
+
+  #ifdef LIFE_LED
     // live led (green)
     if (led && ((now - tLed) >= 10)) {
       led = false;
@@ -67,14 +79,12 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 2000)) {
-      /*if (!comm_tx_busy()) {
-        comm_write("Hello UART\r\n", 12);
-      }*/
       led = true;
       b = 0x10;
       put_pixel(urgb_u32(r,g,b));
       tLed = now;
     }
+  #endif
 
     // event notification
     switch (event) {
@@ -89,6 +99,7 @@ int main() {
         printf("Lock %s\n", (event==EVENT_LOCK)?"locked":"unlocked");
         comrx = sprint_status(comm_buff, COMM_BUFLEN);
         comm_write(comm_buff, comrx);
+        tLastTx = now;
         break;
       case EVENT_CMD_UNLOCK:
         printf("Unlock command received\n");

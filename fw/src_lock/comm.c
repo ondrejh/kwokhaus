@@ -113,52 +113,9 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
   return 0;
 }
 
-/*// parse zone (+ZZ)
-int parse_zone(uint8_t *buff, int max, tim_t *tim) {
-  int z;
-  if (max < 3)
-    return -1;
-  if (sscanf(buff, "%3d", &z) == 1) {
-    if ((z >= -12) && (z < 12)) {
-      tim->z = (int8_t) z;
-      return 0;
-    }
-  }
-  return -1;
-}
-
-// parse time (HH:MM)
-int parse_time(uint8_t *buff, int max, tim_t *tim) {
-  int h, m;
-  if (max < 5)
-    return -1;
-  if (sscanf(buff, "%2d:%2d", &h, &m) == 2) {
-    if ((h >= 0) && (h < 24) && (m >= 0) && (m < 60)) {
-      tim->h = (int8_t)h;
-      tim->m = (int8_t)m;
-      tim->s = 0;
-      return 0;
-    }
-  }
-  return -1;
-}
-
-// print time into the buffer
-int sprint_time(uint8_t *buff, int max, tim_t tim, uint8_t *pref) {
-  int len = snprintf(buff, max, "%s", pref);
-  if (tim.h < 0) // time not set
-    len += snprintf(&buff[len], max-len, "---");
-  else {
-    len += snprintf(&buff[len], max-len, "%02d:%02d", tim.h, tim.m);
-    if (tim.z != 0) // zone set (print it too)
-      len += snprintf(&buff[len], max-len, "(%+d)", tim.z);
-  }
-  return len;
-}*/
-
 // print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
-  int len = snprintf(buff, max, "%s ", DEV_NAME);
+  int len = snprintf(buff, max, "%s: ", DEV_NAME);
   len += snprintf(&buff[len], max - len, "%s", lock==LOCK_UNLOCKED? "UNLOCKED" : "LOCKED");
   return len;
 }

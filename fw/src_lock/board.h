@@ -5,7 +5,7 @@
 
 #define BTN_MIN_PULSE 10
 #define BTN_HOLD_PULSE 600
-#define LOCK_FILTER_T 1000
+#define LOCK_FILTER_T LOCK_TIMEOUT
 
 typedef enum {
   LOCK_UNKNOWN,

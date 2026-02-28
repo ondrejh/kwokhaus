@@ -3,6 +3,10 @@
 
 // Name will be used as comm identifier
 #define DEV_NAME "KWAK"
+#define LOCK_TIMEOUT 1000 // ms
+#define STATUS_REPEAT_PERIOD 30 * 60 * 1000
+
+//#define LIFE_LED
 
 // GPIO
 #define LED_GREEN_PIN 12
