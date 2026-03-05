@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include "pico/stdlib.h"
-#include "pico/cyw43_arch.h"
-#include "lwip/apps/mqtt.h"
-#include "lwip/dns.h"
-#include "lwip/ip_addr.h"
+#include "includes.h"
 
 #if __has_include("secrets.h")
     #include "secrets.h"
@@ -13,8 +7,15 @@
     #warning "Using default credentials. Please copy dummy_secrest.h to secrets.h and edit it to your needs"
 #endif
 
+#define millis() (to_ms_since_boot(get_absolute_time()))
+
 //#define MQTT_PORT 1883
 #define PUBLISH_INTERVAL_MS 10000
+
+#define COMM_BUFLEN 128
+int comtx = 0, comrx = 0;
+uint8_t comrx_buff[COMM_BUFLEN];
+uint8_t comtx_buff[COMM_BUFLEN];
 
 static mqtt_client_t *mqtt_client;
 static uint32_t publish_counter = 0;
@@ -25,6 +26,8 @@ static uint32_t publish_counter = 0;
 
 static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
     printf("MQTT RX: %.*s\n", len, (const char *)data);
+    memcpy(comtx_buff, data, COMM_BUFLEN);
+    comtx = len;
 }
 
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
@@ -96,7 +99,9 @@ static void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callba
 
 int main() {
     stdio_init_all();
-    sleep_ms(2000);
+
+    comm_init();
+    //sleep_ms(2000);
 
     if (cyw43_arch_init()) {
         printf("WiFi init failed\n");
@@ -132,9 +137,41 @@ int main() {
     absolute_time_t next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
 
     while (true) {
+        int32_t now = millis();
         cyw43_arch_poll();
 
+        // receive comm
+        if (comrx < 1) {
+            comrx = comm_poll(now, 100, comrx_buff, COMM_BUFLEN);
+            if (comrx) {
+                strip(comrx_buff, comrx);
+                printf("COMM RX: %.*s\n", COMM_BUFLEN, comrx_buff);
+            }
+        }
+
+        // transmitt comm
+        if ((comtx>0) && (!comm_tx_busy())) {
+            strip(comtx_buff, comtx);
+            comm_write(comtx_buff, comtx);
+            printf("COMM TX: %.*s\n", comtx, comtx_buff);
+            comtx = 0;
+        }
+
         if (mqtt_client && mqtt_client_is_connected(mqtt_client)) {
+            if (comrx) {
+                printf("MQTT TX: %s\n", comrx_buff);
+                mqtt_publish(mqtt_client,
+                             MQTT_TOPIC_TO_PUBLISH,
+                             comrx_buff,
+                             strlen(comrx_buff),
+                             0,
+                             0,
+                             mqtt_request_cb,
+                             NULL);
+
+                next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
+                comrx = 0;
+            }
             if (absolute_time_diff_us(get_absolute_time(), next_publish) < 0) {
 
                 char payload[64];

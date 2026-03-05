@@ -21,6 +21,7 @@ pico_sdk_init()
 
 add_executable(${PROJECT_NAME}
     main.c
+    comm.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -29,6 +30,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
+    hardware_uart
     pico_cyw43_arch_lwip_poll
     pico_lwip_mqtt
 )
