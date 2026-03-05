@@ -18,4 +18,9 @@
 
 #define LWIP_MQTT                       1
 
+#define MEMP_NUM_SYS_TIMEOUT            32
+#define MEMP_NUM_TCP_PCB                8
+#define MEMP_NUM_TCP_SEG                32
+#define MEMP_NUM_PBUF                   32
+
 #endif

@@ -28,7 +28,7 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
 }
 
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
-    printf("MQTT Message on topic: %s\n", topic);
+    //printf("MQTT Message on topic: %s\n", topic);
 }
 
 /* ============================= */
@@ -140,6 +140,9 @@ int main() {
                 char payload[64];
                 snprintf(payload, sizeof(payload),
                          "{\"cnt\": %lu}", publish_counter++);
+
+                //printf("MQTT Message on topic: %s\n", MQTT_TOPIC_TO_PUBLISH);
+                printf("MQTT TX: %s\n", payload);
 
                 mqtt_publish(mqtt_client,
                              MQTT_TOPIC_TO_PUBLISH,
