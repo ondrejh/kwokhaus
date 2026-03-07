@@ -165,21 +165,24 @@ bool is_printable_ascii(uint8_t c) {
 
 // strip buffer content from non printable characters
 int strip(uint8_t *buff, int len) {
-  int beg, end, nlen = 0;
+  int beg, end;//, nlen = 0;
   for (beg = 0; beg < len; beg ++) {
     if (is_printable_ascii(buff[beg]))
       break;
   }
   for (end = len-1; end >= 0; end --) {
-    if (is_printable_ascii(buff[end]))
+    if (is_printable_ascii(buff[end])) {
+      end ++;
       break;
+    }
   }
   if (beg < end) {
-    nlen = end + 1 - beg;
-    memmove(buff, &buff[beg], nlen);
+    //nlen = end - beg;
+    end -= beg;
+    memmove(buff, &buff[beg], end);
   }
   
   buff[end] = '\0';
-  return nlen;
+  return end;
 }
 

@@ -9,8 +9,9 @@
 
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
-//#define MQTT_PORT 1883
-#define PUBLISH_INTERVAL_MS 10000
+#define MINMS (60*1000)
+#define LOCK_REQUEST_INTERVAL (35*MINMS) // 35 min
+#define LOCK_REQUEST_MINIMAL_INTERVAL 30000 // 30s
 
 #define COMM_BUFLEN 128
 int comtx = 0, comrx = 0;
@@ -20,6 +21,8 @@ uint8_t comtx_buff[COMM_BUFLEN];
 static mqtt_client_t *mqtt_client;
 static uint32_t publish_counter = 0;
 
+extern LockState lock;
+
 /* ============================= */
 /* MQTT RECEIVE CALLBACKS       */
 /* ============================= */
@@ -28,9 +31,11 @@ static void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t f
     printf("MQTT RX: %.*s\n", len, (const char *)data);
     memcpy(comtx_buff, data, COMM_BUFLEN);
     comtx = len;
+    LED_OFF();
 }
 
 static void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
+    LED_ON();
     //printf("MQTT Message on topic: %s\n", topic);
 }
 
@@ -101,17 +106,17 @@ int main() {
     stdio_init_all();
 
     comm_init();
-    //sleep_ms(2000);
 
+    uint8_t r = 0, g = 0, b = 0;
     ws2812_init(RGB_LED_PIN);
-    put_pixel(urgb_u32(0,0,10));
-
-    LED_INIT();
+    put_pixel(urgb_u32(r, g, b));
 
     if (cyw43_arch_init()) {
         printf("WiFi init failed\n");
         return -1;
     }
+    LED_INIT();
+    LED_ON();
 
     cyw43_arch_enable_sta_mode();
 
@@ -139,27 +144,63 @@ int main() {
         dns_found_cb(MQTT_SERVER, &broker_ip, NULL);
     }
 
-    absolute_time_t next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
+    uint32_t led_t = millis();
+    uint32_t lock_last_updated_t = millis();
+    uint32_t lock_request_t = millis();
+
+    LED_OFF();
 
     while (true) {
         int32_t now = millis();
         cyw43_arch_poll();
 
-        // receive comm
+        // receive comm (from meshtastic)
         comrx = comm_poll(now, 100, comrx_buff, COMM_BUFLEN);
         if (comrx) {
-            //strip(comrx_buff, comrx);
+            b = 255;
+            comrx = strip(comrx_buff, comrx);
             printf("COMM RX: %.*s\n", COMM_BUFLEN, comrx_buff);
+
+            if (strstr(comrx_buff, STATUS_LOCK_LOCKED) != NULL) {
+                lock_last_updated_t = now;
+                if (lock != LOCK_LOCKED) {
+                    lock = LOCK_LOCKED;
+                    r = 255;
+                    g /= 2;
+                    printf("LOCK LOCKED\n");
+                }
+            }
+            else if (strstr(comrx_buff, STATUS_LOCK_UNLOCKED) != NULL) {
+                lock_last_updated_t = now;
+                if (lock != LOCK_UNLOCKED) {
+                    lock = LOCK_UNLOCKED;
+                    g = 255;
+                    r /= 2;
+                    printf("LOCK UNLOCKED\n");
+                }
+            }
         }
 
-        // transmitt comm
+        // update lock status if needed
+        if ((((now - lock_last_updated_t) > LOCK_REQUEST_INTERVAL) || (lock == LOCK_UNKNOWN)) &&
+            ((now - lock_request_t) > LOCK_REQUEST_MINIMAL_INTERVAL) &&
+            (comtx == 0) && (!comm_tx_busy()))
+        {
+            lock_request_t = now;
+            printf("LOCK REQUEST\n");
+            sprintf(comtx_buff, STATUS_LOCK_REQUEST);
+            comtx = strlen(comtx_buff);
+        }
+
+        // transmitt comm (to meshtastic)
         if ((comtx>0) && (!comm_tx_busy())) {
-            //strip(comtx_buff, comtx);
+            b = 255;
             comm_write(comtx_buff, comtx);
             printf("COMM TX: %.*s\n", comtx, comtx_buff);
             comtx = 0;
         }
 
+        // publish what was received from meshtastic
         if (mqtt_client && mqtt_client_is_connected(mqtt_client)) {
             if (comrx) {
                 LED_ON();
@@ -172,35 +213,23 @@ int main() {
                              0,
                              mqtt_request_cb,
                              NULL);
-
-                next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
                 comrx = 0;
-                LED_OFF();
-            }
-            if (absolute_time_diff_us(get_absolute_time(), next_publish) < 0) {
-                LED_ON();
-                char payload[64];
-                snprintf(payload, sizeof(payload),
-                         "{\"cnt\": %lu}", publish_counter++);
-
-                //printf("MQTT Message on topic: %s\n", MQTT_TOPIC_TO_PUBLISH);
-                printf("MQTT TX: %s\n", payload);
-
-                mqtt_publish(mqtt_client,
-                             MQTT_TOPIC_TO_PUBLISH,
-                             payload,
-                             strlen(payload),
-                             0,
-                             0,
-                             mqtt_request_cb,
-                             NULL);
-
-                next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
                 LED_OFF();
             }
         }
 
-        sleep_ms(10);
+        // some rgb status led blinking
+        if ((now - led_t) > 40) {
+            led_t = now;
+            if (r > g) g = 0;
+            if (g > r) r = 0;
+            put_pixel(urgb_u32(r, g, b));
+            if (r > 10) r = (int)r * 8 / 10;
+            if (g > 10) g = (int)g * 8 / 10;
+            if (b > 0) b = (int)b * 4 / 10;
+        }
+
+        //sleep_ms(10);
     }
 
     cyw43_arch_deinit();

@@ -65,9 +65,9 @@ Dedicated Meshtastic connected device, monitoring Lock status. It has an RGB led
 
 #### ToDo
 
-- [ ] chatch lock unlock messages, display
+- [x] chatch lock unlock messages, display
 - [ ] detect button press, send unlock message
-- [ ] send status request when no status update
+- [x] send status request when no status update
 
 ##### Technical
 
