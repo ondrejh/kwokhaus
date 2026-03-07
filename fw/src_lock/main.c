@@ -64,7 +64,7 @@ int main() {
       }
     }
 
-    if ((!comm_tx_busy) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
+    if ((!comm_tx_busy()) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
       tLastTx = now;
       comrx = sprint_status(comm_buff, COMM_BUFLEN);
       comm_write(comm_buff, comrx);
