@@ -12,6 +12,7 @@
 #define MINMS (60*1000)
 #define LOCK_REQUEST_INTERVAL (35*MINMS) // 35 min
 #define LOCK_REQUEST_MINIMAL_INTERVAL 30000 // 30s
+#define UNLOCK_REQUEST_MINIMAL_INTERVAL 5000 // 5s
 
 #define COMM_BUFLEN 128
 int comtx = 0, comrx = 0;
@@ -111,6 +112,10 @@ int main() {
     ws2812_init(RGB_LED_PIN);
     put_pixel(urgb_u32(r, g, b));
 
+    gpio_init(BUTTON_PIN);
+    gpio_set_dir(BUTTON_PIN, GPIO_IN);
+    gpio_set_pulls(BUTTON_PIN, true, false);
+
     if (cyw43_arch_init()) {
         printf("WiFi init failed\n");
         return -1;
@@ -154,6 +159,18 @@ int main() {
         int32_t now = millis();
         cyw43_arch_poll();
 
+        ButtonState btn = button_poll(now);
+        switch (btn) {
+            case BTNST_PRESSED:
+                printf("BUTTON PRESSED\n");
+                break;
+            case BTNST_LONG_PRESSED:
+                printf("BUTTON LONG PRESSED\n");
+                break;
+            default:
+                break;
+        }
+
         // receive comm (from meshtastic)
         comrx = comm_poll(now, 100, comrx_buff, COMM_BUFLEN);
         if (comrx) {
@@ -179,6 +196,17 @@ int main() {
                     printf("LOCK UNLOCKED\n");
                 }
             }
+        }
+
+        // send unlock message when button pressed
+        if ((btn == BTNST_PRESSED) &&
+            ((now - lock_request_t) > UNLOCK_REQUEST_MINIMAL_INTERVAL) &&
+            (comtx == 0) && (!comm_tx_busy()))
+        {
+            lock_request_t = now;
+            printf("UNLOCK REQUEST\n");
+            sprintf(comtx_buff, UNLOCK_REQUEST);
+            comtx = strlen(comtx_buff);
         }
 
         // update lock status if needed

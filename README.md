@@ -66,7 +66,7 @@ Dedicated Meshtastic connected device, monitoring Lock status. It has an RGB led
 #### ToDo
 
 - [x] chatch lock unlock messages, display
-- [ ] detect button press, send unlock message
+- [x] detect button press, send unlock message
 - [x] send status request when no status update
 
 ##### Technical
@@ -83,6 +83,10 @@ Dedicated Meshtastic connected device, monitoring Lock status. It has an RGB led
 - mqtt connection
   - bridge between secret Meshtastic channel and MQTT
   - backup channel for HA, in case main transceiver doesn't work
+
+#### Prototype
+
+![KwakKey prototype with ohM3 meshtastic modem](doc/key_prototype.jpg)
 
 ---
 
