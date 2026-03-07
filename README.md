@@ -7,6 +7,7 @@ Attempt on some eggish automation.
 - [ ] remote controlled kwakhaus lock (status, unlock)
 - [ ] kwokhaus door motor controll
 
+---
 
 ## Kwakhaus
 
@@ -57,6 +58,35 @@ Let there be ```mqtt.yaml``` file in your config. And let there be in you ```con
 Note that, you also need to have secret definition in your secret.yaml file. This is how HA works. Love it or hate it.
 
 From now on, youre having last MediumFast message in sensor.medium_fast_message entity. One can probably imagine how to change this for his own secret channel. Cause the otherone can probably imagine, its not a good idea to have LOCK driver connected to the public channel.
+
+### Key
+
+Dedicated Meshtastic connected device, monitoring Lock status. It has an RGB led to indicate whether lock is locked or unlocked. It also has the button to unlock it remotelly.
+
+#### ToDo
+
+- [ ] chatch lock unlock messages, display
+- [ ] detect button press, send unlock message
+- [ ] send status request when no status update
+
+##### Technical
+
+- [ ] wifi, mqtt reconnecting
+- [ ] mqtt dedicated files (not to plague main)
+
+#### Features
+
+- button
+  - to unlock remote lock
+- rgb led
+  - to indicate remote lock status
+- mqtt connection
+  - bridge between secret Meshtastic channel and MQTT
+  - backup channel for HA, in case main transceiver doesn't work
+
+---
+
+Obsolette
 
 ### Idea (not to forget)
 

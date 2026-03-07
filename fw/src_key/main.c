@@ -103,6 +103,11 @@ int main() {
     comm_init();
     //sleep_ms(2000);
 
+    ws2812_init(RGB_LED_PIN);
+    put_pixel(urgb_u32(0,0,10));
+
+    LED_INIT();
+
     if (cyw43_arch_init()) {
         printf("WiFi init failed\n");
         return -1;
@@ -141,17 +146,15 @@ int main() {
         cyw43_arch_poll();
 
         // receive comm
-        if (comrx < 1) {
-            comrx = comm_poll(now, 100, comrx_buff, COMM_BUFLEN);
-            if (comrx) {
-                strip(comrx_buff, comrx);
-                printf("COMM RX: %.*s\n", COMM_BUFLEN, comrx_buff);
-            }
+        comrx = comm_poll(now, 100, comrx_buff, COMM_BUFLEN);
+        if (comrx) {
+            //strip(comrx_buff, comrx);
+            printf("COMM RX: %.*s\n", COMM_BUFLEN, comrx_buff);
         }
 
         // transmitt comm
         if ((comtx>0) && (!comm_tx_busy())) {
-            strip(comtx_buff, comtx);
+            //strip(comtx_buff, comtx);
             comm_write(comtx_buff, comtx);
             printf("COMM TX: %.*s\n", comtx, comtx_buff);
             comtx = 0;
@@ -159,6 +162,7 @@ int main() {
 
         if (mqtt_client && mqtt_client_is_connected(mqtt_client)) {
             if (comrx) {
+                LED_ON();
                 printf("MQTT TX: %s\n", comrx_buff);
                 mqtt_publish(mqtt_client,
                              MQTT_TOPIC_TO_PUBLISH,
@@ -171,9 +175,10 @@ int main() {
 
                 next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
                 comrx = 0;
+                LED_OFF();
             }
             if (absolute_time_diff_us(get_absolute_time(), next_publish) < 0) {
-
+                LED_ON();
                 char payload[64];
                 snprintf(payload, sizeof(payload),
                          "{\"cnt\": %lu}", publish_counter++);
@@ -191,6 +196,7 @@ int main() {
                              NULL);
 
                 next_publish = make_timeout_time_ms(PUBLISH_INTERVAL_MS);
+                LED_OFF();
             }
         }
 

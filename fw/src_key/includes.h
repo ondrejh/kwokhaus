@@ -11,10 +11,11 @@
 #include "lwip/dns.h"
 #include "lwip/ip_addr.h"
 
-//#include "ws2812.pio.h"
-//#include "ws2812.h"
+#include "ws2812.pio.h"
+#include "ws2812.h"
 
 #include "secrets.h"
 #include "comm.h"
+#include "board.h"
 
 #endif // __INCLUDES_H__
