@@ -81,7 +81,7 @@ bool adc_poll(uint16_t *res) {
 const uint16_t adc_vref = 3300; // 3.3V
 
 uint16_t adc2u(uint16_t adc) {
-  uint32_t res = adc * adc_vref * 11 / 2048;
+  uint32_t res = adc * adc_vref * 11 / 2048 ;
   return res;
 }
 
