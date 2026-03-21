@@ -1,88 +1,50 @@
 #include "includes.h"
 
-#define OVERSAMPLE 64
-#define ADC_CHANNELS 3
-#define BLOCK_SAMPLES (ADC_CHANNELS * OVERSAMPLE)
-uint16_t adc_buffer[BLOCK_SAMPLES];
-int dma_chan;
+const uint16_t adc_vref = 3300; // 3.3V
 
-void adc_my_init(void) {
-  adc_gpio_init(26); // ADC0
-  adc_gpio_init(28); // ADC2
-  adc_gpio_init(29); // ADC3
-
-  // round-robin: ADC0, ADC2, ADC3
-  adc_set_round_robin(
-    (1 << 0) |   // ADC0
-    (1 << 2) |   // ADC2
-    (1 << 3)     // ADC3
-  );
-
-  // FIFO + DMA
-  adc_fifo_setup(
-    true,   // FIFO enable
-    true,   // DMA DREQ
-    1,
-    false,
-    false
-  );
-
-  // ADC clock ~96 kS/s
-  adc_set_clkdiv(499.0f);
-
-  // DMA channel config
-  dma_chan = dma_claim_unused_channel(true);
-  dma_channel_config cfg = dma_channel_get_default_config(dma_chan);
-
-  channel_config_set_transfer_data_size(&cfg, DMA_SIZE_16);
-  channel_config_set_read_increment(&cfg, false);
-  channel_config_set_write_increment(&cfg, true);
-  channel_config_set_dreq(&cfg, DREQ_ADC);
-
-  dma_channel_configure(
-      dma_chan,
-      &cfg,
-      adc_buffer,
-      &adc_hw->fifo,
-      BLOCK_SAMPLES,
-      false
-  );
+uint16_t adc2u(uint16_t adc) {
+  uint32_t res = adc * adc_vref * 11 / (4096 * ADC_OVERSAMPLE) ;
+  return res;
 }
 
-void adc_start_once(void) {
-  adc_run(true);
-  dma_channel_start(dma_chan);
-}
-
-bool adc_poll(uint16_t *res) {
-  if (!dma_channel_is_busy(dma_chan)) {
-    uint32_t sum[ADC_CHANNELS] = {0};
-
-    for (int i = 0; i < BLOCK_SAMPLES; i++) {
-        sum[i % ADC_CHANNELS] += adc_buffer[i];
+bool adc_poll(uint32_t now, uint16_t *adc) {
+  static uint32_t tAdc = 0;
+  static int cnt = 0;
+  static uint16_t a[3] = {0,0,0};
+  if ((now - tAdc) >= ADC_POLL_PERIOD) {
+    tAdc = now;
+    adc_select_input(SENSE_VIN_ADC);
+    a[0] += adc_read();
+    adc_select_input(SENSE_L_ADC);
+    a[1] += adc_read();
+    adc_select_input(SENSE_R_ADC);
+    a[2] += adc_read();
+    cnt ++;
+    if (cnt >= ADC_OVERSAMPLE) {
+      for (int i=0; i<3; i++) {
+        adc[i] = a[i];
+        a[i] = 0;
+      }
+      cnt = 0;
+      return true;
     }
-
-    //uint16_t adc26 = sum[0] / OVERSAMPLE; // GP26 / ADC0
-    //uint16_t adc28 = sum[1] / OVERSAMPLE; // GP28 / ADC2
-    //uint16_t adc29 = sum[2] / OVERSAMPLE; // GP29 / ADC3
-    res[0] = sum[0] / OVERSAMPLE; // GP26 / ADC0
-    res[1] = sum[1] / OVERSAMPLE; // GP28 / ADC2
-    res[2] = sum[2] / OVERSAMPLE; // GP29 / ADC3
-
-    // TODO: zpracování / odeslání dat
-
-    // znovu nastartuj DMA
-    dma_channel_set_write_addr(dma_chan, adc_buffer, true);
-    return true;
   }
   return false;
 }
 
-const uint16_t adc_vref = 3300; // 3.3V
+uint32_t v2pwm(uint16_t v) {
+  // 1. osetreni 0
+  if (v == 0) return 0;
 
-uint16_t adc2u(uint16_t adc) {
-  uint32_t res = adc * adc_vref * 11 / 2048 ;
-  return res;
+  // 2. pokud je napeti nizsi nebo rovno limitu, jedeme na 100 %
+  if (v <= VOLT_FULL_PWR) {
+    return (uint32_t)PWM_PERIOD;
+  }
+
+  // 3. vypocet pro vyssi napeti: PWM = PERIOD * (LIMIT / NAPETI)
+  // pouzivame uint64_t pro, aby nedoslo k preteceni
+  uint64_t calc = (uint64_t)PWM_PERIOD * VOLT_FULL_PWR;
+  return (uint32_t)(calc / v);
 }
 
 void init(void) {
@@ -103,10 +65,35 @@ void init(void) {
   // Initialize communication
   //comm_init();
 
-  adc_my_init();
+  // initialize PWM
+  // 1. nastaveni pwm pinu
+  gpio_set_function(PWM_L_PIN, GPIO_FUNC_PWM);
+  gpio_set_function(PWM_R_PIN, GPIO_FUNC_PWM);
+
+  // 2. zjisti bloky (slices) pwm
+  uint sliceL = pwm_gpio_to_slice_num(PWM_L_PIN);
+  uint sliceR = pwm_gpio_to_slice_num(PWM_R_PIN);
+
+  // 3. nastaveni periody
+  pwm_set_wrap(sliceL, PWM_PERIOD);
+  pwm_set_wrap(sliceR, PWM_PERIOD);
+
+  // 4. nastaveni stridy (Duty Cycle) ~ 0
+  pwm_set_gpio_level(PWM_L_PIN, 0);
+  pwm_set_gpio_level(PWM_R_PIN, 0);
+
+  // 5. spusteni PWM bloku
+  pwm_set_enabled(sliceL, true);
+  pwm_set_enabled(sliceR, true);
+
+  // initialize ADC
+  adc_init();
+  adc_gpio_init(SENSE_VIN_PIN);
+  adc_gpio_init(SENSE_L_PIN);
+  adc_gpio_init(SENSE_R_PIN);
 
   // Initialize onboard NeoPixel
-  ws2812_init(16);
+  ws2812_init(RGB_LED_PIN);
 }
 
 #define COMM_BUFLEN 128
@@ -118,7 +105,7 @@ int main() {
   init();
 
   bool led = false, trig = false;
-  int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0;
+  int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0, tAdc = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00;
 
   btn_ctx_t btnL, btnR;
@@ -127,10 +114,11 @@ int main() {
 
   tDisp = millis();
 
-  adc_start_once();
-
   uint32_t cnt = 0;
   uint16_t adc[3];
+
+  uint32_t pwm = 0;
+  uint16_t voltage = 0;
 
   while (true) {
     int32_t now = millis();
@@ -141,8 +129,8 @@ int main() {
     if (btnL.st == BTNST_HOLD) {
       gpio_put(ENABLE_L_PIN, true);
       gpio_put(ENABLE_R_PIN, true);
-      gpio_put(PWM_R_PIN, false);
-      gpio_put(PWM_L_PIN, true);
+      pwm_set_gpio_level(PWM_R_PIN, 0);
+      pwm_set_gpio_level(PWM_L_PIN, pwm);
       if ((r == 0) || (g != 0)) {
         g = 0;
         r = 0x10;
@@ -152,8 +140,8 @@ int main() {
     else if (btnR.st == BTNST_HOLD) {
       gpio_put(ENABLE_L_PIN, true);
       gpio_put(ENABLE_R_PIN, true);
-      gpio_put(PWM_L_PIN, false);
-      gpio_put(PWM_R_PIN, true);
+      pwm_set_gpio_level(PWM_R_PIN, pwm);
+      pwm_set_gpio_level(PWM_L_PIN, 0);
       if ((g == 0) || (r != 0)) {
         r = 0;
         g = 0x10;
@@ -163,15 +151,24 @@ int main() {
     else {
       gpio_put(PWM_L_PIN, false);
       gpio_put(PWM_R_PIN, false);
-      gpio_put(ENABLE_L_PIN, false);
-      gpio_put(ENABLE_R_PIN, false);
+      pwm_set_gpio_level(PWM_R_PIN, 0);
+      pwm_set_gpio_level(PWM_L_PIN, 0);
       if ((r != 0) || (g != 0)) {
         r = g = 0;
         put_pixel(urgb_u32(r,g,b));
       }
     }
 
-    if (adc_poll(adc)) cnt++;
+    if (adc_poll(now, adc)) {
+      voltage = adc2u(adc[0]);
+      pwm = v2pwm(voltage);
+    }
+
+    if ((now - tAdc) > 200) {
+      tAdc = now;
+      printf("%04X %04X %04X\n", adc[0], adc[1], adc[2]);
+      printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
+    }
 
     //event_t event = get_input_event(now);
 
@@ -203,7 +200,7 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 1000)) {
-      printf("%d %d %d %d %d\n", cnt, adc[0], adc[1], adc[2], adc2u(adc[0]));
+      //printf("%d %d %d %d %d\n", cnt, adc[0], adc[1], adc[2], adc2u(adc[0]));
       //if (!comm_tx_busy()) {
       //  comm_write("Hello UART\r\n", 12);
       //}
