@@ -15,17 +15,15 @@
 #define LOCK_PIN 15
 #define SENSE_ADC_PIN 26
 
-// Display I2C pins and instance
-#define DISP_I2C_SDA_PIN 4
-#define DISP_I2C_SCL_PIN 5
-#define DISP_I2C_PORT i2c0
-#define DISP_I2C_ADDR 0x3C
+// Voltage sense ADC
+#define SENSE_VIN_PIN 26
+#define SENSE_VIN_ADC 0
 
-// RTC I2C pins and instance
-#define RTC_I2C_SDA_PIN 2
-#define RTC_I2C_SCL_PIN 3
-#define RTC_I2C_PORT i2c1
-#define RTC_I2C_ADDR 0x68
+#define ADC_POLL_PERIOD 2
+#define ADC_OVERSAMPLE 4
+
+#define PWM_PERIOD 62500 // 5kHz
+#define VOLT_FULL_PWR 13000 // mV
 
 //#define TIME_POLLING_PERIOD 1000 // ms
 

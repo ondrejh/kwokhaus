@@ -1,5 +1,41 @@
 #include "includes.h"
 
+const uint16_t adc_vref = 3300; // 3.3V
+
+#define VIN_CORR_PERCENT 86
+
+uint16_t adc2u(uint16_t adc) {
+  uint16_t res = (uint32_t)(((uint32_t)adc * adc_vref * 11) / ((uint32_t)4096 * ADC_OVERSAMPLE) * 86 / 100);
+  return (uint16_t)res;
+}
+
+uint32_t v2pwm(uint16_t v) {
+  if (v == 0) return 0;
+  if (v <= VOLT_FULL_PWR) {
+    return (uint32_t)PWM_PERIOD;
+  }
+  uint64_t calc = (uint64_t)PWM_PERIOD * VOLT_FULL_PWR;
+  return (uint32_t)(calc / v);
+}
+
+bool adc_poll(uint32_t now, uint16_t *adc) {
+  static uint32_t tAdc = 0;
+  static int cnt = 0;
+  static uint16_t a = 0;
+  if ((now - tAdc) >= ADC_POLL_PERIOD) {
+    tAdc = now;
+    adc_select_input(SENSE_VIN_ADC);
+    a += adc_read();
+    cnt ++;
+    if (cnt >= ADC_OVERSAMPLE) {
+      *adc = a;
+      a = 0;
+      cnt = 0;
+      return true;
+    }
+  }
+  return false;
+}
 
 void init(void) {
   // Initialize outputs
@@ -12,6 +48,10 @@ void init(void) {
   gpio_set_pulls(BUTTON_PIN, true, false);
   gpio_set_dir(LOCK_PIN, GPIO_IN);
   gpio_set_pulls(LOCK_PIN, true, false);
+
+    // initialize ADC
+  adc_init();
+  adc_gpio_init(SENSE_VIN_PIN);
 
   // Initialize communication
   comm_init();
@@ -34,6 +74,12 @@ int main() {
   bool trig = false;
   int32_t tTrig = 0, tLastTx = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00; 
+
+  int16_t adcVin = 0;
+  int32_t tAdcNot = 0;
+
+  uint32_t pwm = 0;
+  uint16_t voltage = 0;
 
   while (true) {
     int32_t now = millis();
@@ -109,6 +155,17 @@ int main() {
       default:
         break;
     }
+
+    // measure input voltage, get current pwm output (12V out)
+    if (adc_poll(now, &adcVin)) {
+      voltage = adc2u(adcVin);
+      pwm = v2pwm(voltage);
+    }
+    /*// print it (debug)
+    if ((now - tAdcNot) > 2000) {
+      tAdcNot = now;
+      printf("%0.01fV %d/%d DC\n", (float)voltage/1000.0, PWM_PERIOD, pwm);
+    }*/
 
     // trigger
     if (trig && ((now - tTrig) >= 500)) {
