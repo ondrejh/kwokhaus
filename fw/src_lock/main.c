@@ -1,11 +1,13 @@
 #include "includes.h"
 
+#define USE_PWM_OUT
+
 const uint16_t adc_vref = 3300; // 3.3V
 
 #define VIN_CORR_PERCENT 86
 
 uint16_t adc2u(uint16_t adc) {
-  uint16_t res = (uint32_t)(((uint32_t)adc * adc_vref * 11) / ((uint32_t)4096 * ADC_OVERSAMPLE) * 86 / 100);
+  uint16_t res = (uint32_t)(((uint32_t)adc * adc_vref * 11) / ((uint32_t)4096 * ADC_OVERSAMPLE) * VIN_CORR_PERCENT / 100);
   return (uint16_t)res;
 }
 
@@ -48,6 +50,15 @@ void init(void) {
   gpio_set_pulls(BUTTON_PIN, true, false);
   gpio_set_dir(LOCK_PIN, GPIO_IN);
   gpio_set_pulls(LOCK_PIN, true, false);
+
+#ifdef USE_PWM_OUT
+  // Initialize PWM
+  gpio_set_function(TRIGGER_PIN, GPIO_FUNC_PWM);
+  uint slTrig = pwm_gpio_to_slice_num(TRIGGER_PIN);
+  pwm_set_wrap(slTrig, PWM_PERIOD);
+  pwm_set_gpio_level(TRIGGER_PIN, 0);
+  pwm_set_enabled(slTrig, true);
+#endif
 
     // initialize ADC
   adc_init();
@@ -160,6 +171,9 @@ int main() {
     if (adc_poll(now, &adcVin)) {
       voltage = adc2u(adcVin);
       pwm = v2pwm(voltage);
+#ifdef USE_PWM_OUT
+      pwm_set_gpio_level(TRIGGER_PIN, trig ? pwm : 0);
+#endif
     }
     /*// print it (debug)
     if ((now - tAdcNot) > 2000) {
@@ -170,15 +184,19 @@ int main() {
     // trigger
     if (trig && ((now - tTrig) >= 500)) {
       trig = false;
+#ifndef USE_PWM_OUT
       gpio_put(TRIGGER_PIN, trig);
+#endif
       r = 0;
       put_pixel(urgb_u32(r,g,b));
     }
     if (!trig && trig_now) {
       tTrig = now;
       trig = true;
+#ifndef USE_PWM_OUT
       gpio_put(TRIGGER_PIN, trig);
-      r = 0x10;
+#endif
+      r = 0x80;
       put_pixel(urgb_u32(r,g,b));
     }
 

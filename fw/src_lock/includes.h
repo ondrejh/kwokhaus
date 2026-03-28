@@ -11,6 +11,7 @@
 #include "pico/stdlib.h"
 
 #include "hardware/adc.h"
+#include "hardware/pwm.h"
 
 #include "ws2812.pio.h"
 #include "ws2812.h"
