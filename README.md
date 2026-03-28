@@ -4,7 +4,7 @@ Attempt on some eggish automation.
 
 # ToDo
 
-- [ ] remote controlled kwakhaus lock (status, unlock)
+- [x] remote controlled kwakhaus lock (status, unlock)
 - [ ] kwokhaus door motor controll
 
 ---
@@ -20,10 +20,13 @@ Source directory fw/src_lock
 - [x] clear project (remove display and rtc)
 - [x] check lock / unlock response
 - [x] create unlock trigger (remote only)
-- [ ] repeat status message every half an hour
+- [x] repeat status message every half an hour
 
 - [x] connect meshtastic message to home assistant
-- [ ] find out how to send messages from home assistant
+- [x] find out how to send messages from home assistant
+
+- [ ] light with dimmer
+- [ ] return more info on status (voltage, temperature, ect.)
 
 #### Communication protocol
 
