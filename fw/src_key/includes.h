@@ -14,6 +14,7 @@
 #include "ws2812.pio.h"
 #include "ws2812.h"
 
+#include "config.h"
 #include "secrets.h"
 #include "comm.h"
 #include "board.h"

@@ -70,6 +70,10 @@ static void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection
                        NULL);
     } else {
         printf("MQTT connection failed: %d\n", status);
+        if (client) {
+            mqtt_client_free(client);
+            mqtt_client = NULL;
+        }
     }
 }
 
@@ -125,29 +129,13 @@ int main() {
 
     cyw43_arch_enable_sta_mode();
 
-    printf("Connecting to WiFi...\n");
+    printf("WiFi/MQTT will connect when available...\n");
 
-    if (cyw43_arch_wifi_connect_timeout_ms(
-            WIFI_SSID,
-            WIFI_PASSWORD,
-            CYW43_AUTH_WPA2_AES_PSK,
-            30000)) {
-
-        printf("WiFi failed\n");
-        return -1;
-    }
-
-    printf("WiFi connected\n");
-
-    ip_addr_t broker_ip;
-    err_t err = dns_gethostbyname(MQTT_SERVER,
-                                  &broker_ip,
-                                  dns_found_cb,
-                                  NULL);
-
-    if (err == ERR_OK) {
-        dns_found_cb(MQTT_SERVER, &broker_ip, NULL);
-    }
+    // WiFi and MQTT reconnection timing
+    uint32_t wifi_check_t = millis();
+    uint32_t mqtt_reconnect_t = 0;
+    uint8_t wifi_connected = 0;
+    uint8_t mqtt_connected = 0;
 
     uint32_t led_t = millis();
     uint32_t lock_last_updated_t = millis();
@@ -158,6 +146,48 @@ int main() {
     while (true) {
         int32_t now = millis();
         cyw43_arch_poll();
+
+        // ===== WiFi connection monitoring =====
+        if ((now - wifi_check_t) > WIFI_CHECK_INTERVAL) {
+            wifi_check_t = now;
+            
+            if (!cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)) {
+                if (wifi_connected) {
+                    printf("WiFi disconnected, attempting to reconnect...\n");
+                    wifi_connected = 0;
+                    mqtt_connected = 0; // MQTT is also down if WiFi is down
+                }
+            } else {
+                if (!wifi_connected) {
+                    printf("WiFi reconnected\n");
+                    wifi_connected = 1;
+                    mqtt_reconnect_t = 0; // Force immediate MQTT reconnection attempt
+                }
+            }
+        }
+
+        // ===== MQTT connection monitoring and reconnection =====
+        if (wifi_connected) {
+            // Check if MQTT is disconnected
+            if (!mqtt_client || !mqtt_client_is_connected(mqtt_client)) {
+                if ((now - mqtt_reconnect_t) > MQTT_RECONNECT_INTERVAL) {
+                    mqtt_reconnect_t = now;
+                    printf("MQTT disconnected, attempting to reconnect...\n");
+                    
+                    ip_addr_t broker_ip;
+                    err_t err = dns_gethostbyname(MQTT_SERVER,
+                                                  &broker_ip,
+                                                  dns_found_cb,
+                                                  NULL);
+                    
+                    if (err == ERR_OK) {
+                        dns_found_cb(MQTT_SERVER, &broker_ip, NULL);
+                    }
+                }
+            } else {
+                mqtt_connected = 1;
+            }
+        }
 
         ButtonState btn = button_poll(now);
         switch (btn) {
