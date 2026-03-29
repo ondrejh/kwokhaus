@@ -5,8 +5,10 @@
 #define RGB_LED_PIN 10
 
 #define LED_INIT() {}
-#define LED_ON() cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,1)
-#define LED_OFF() cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,0)
+static bool ledw_state = false;
+#define LED_ON()      do { ledw_state = true;  cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1); } while(0)
+#define LED_OFF()     do { ledw_state = false; cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0); } while(0)
+#define LED_TOGGLE()  do { ledw_state = !ledw_state; cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, ledw_state); } while(0)
 
 #define millis() (to_ms_since_boot(get_absolute_time()))
 
