@@ -145,7 +145,7 @@ int main() {
     uint32_t lock_request_t = millis();
     uint32_t ledw_t = millis();
 
-    uint32_t wifi_led_t = millis();
+    //uint32_t wifi_led_t = millis();
 
     LED_OFF();
 
@@ -154,16 +154,16 @@ int main() {
         cyw43_arch_poll();
 
         // WiFi status LED blinking
-        if ((now - wifi_led_t) > 200) {
+        /*if ((now - wifi_led_t) > 200) {
             static bool wifi_led_state = false;
             wifi_led_t = now;
-            wifi_led_state = (!wifi_connected) /* || !mqtt_connected)*/ ? !wifi_led_state : false;
+            wifi_led_state = (!wifi_connected) || !mqtt_connected) ? !wifi_led_state : false;
             if (wifi_led_state) {
                 LED_ON();
             } else {
                 LED_OFF();
             }
-        }
+        }*/
 
         // ===== WiFi connection monitoring =====
         if ((now - wifi_check_t) > WIFI_CHECK_INTERVAL) {
@@ -193,19 +193,24 @@ int main() {
         }
 
         // ===== MQTT connection monitoring and reconnection =====
-        if (wifi_connected && (!mqtt_client || !mqtt_client_is_connected(mqtt_client))) {
-            mqtt_connected = false;
-            if ((now - mqtt_reconnect_t) > MQTT_RECONNECT_INTERVAL) {
-                mqtt_reconnect_t = now;
-                printf("MQTT attempting to reconnect...\n");
+        if (wifi_connected) {
+            if ((!mqtt_client || !mqtt_client_is_connected(mqtt_client))) {
+                mqtt_connected = false;
+                if ((now - mqtt_reconnect_t) > MQTT_RECONNECT_INTERVAL) {
+                    mqtt_reconnect_t = now;
+                    printf("MQTT attempting to reconnect...\n");
 
-                ip_addr_t broker_ip;
-                err_t err = dns_gethostbyname(MQTT_SERVER, &broker_ip, dns_found_cb, NULL);
+                    ip_addr_t broker_ip;
+                    err_t err = dns_gethostbyname(MQTT_SERVER, &broker_ip, dns_found_cb, NULL);
                 
-                if (err == ERR_OK) {
-                    dns_found_cb(MQTT_SERVER, &broker_ip, NULL);
-                    mqtt_connected = true;
+                    if (err == ERR_OK) {
+                        dns_found_cb(MQTT_SERVER, &broker_ip, NULL);
+                    } else {
+                        printf("DNS error: %d\n", err);
+                    }
                 }
+            } else {
+                mqtt_connected = true;
             }
         }
 
@@ -311,8 +316,7 @@ int main() {
         if ((now - ledw_t) > 200) {
             ledw_t = now;
 
-            if (!wifi_connected) LED_ON();
-            else if (!mqtt_connected) LED_TOGGLE();
+            if ((!wifi_connected) || (!mqtt_connected)) LED_TOGGLE();
             else LED_OFF();
         }
 
