@@ -145,25 +145,9 @@ int main() {
     uint32_t lock_request_t = millis();
     uint32_t ledw_t = millis();
 
-    //uint32_t wifi_led_t = millis();
-
-    LED_OFF();
-
     while (true) {
         int32_t now = millis();
         cyw43_arch_poll();
-
-        // WiFi status LED blinking
-        /*if ((now - wifi_led_t) > 200) {
-            static bool wifi_led_state = false;
-            wifi_led_t = now;
-            wifi_led_state = (!wifi_connected) || !mqtt_connected) ? !wifi_led_state : false;
-            if (wifi_led_state) {
-                LED_ON();
-            } else {
-                LED_OFF();
-            }
-        }*/
 
         // ===== WiFi connection monitoring =====
         if ((now - wifi_check_t) > WIFI_CHECK_INTERVAL) {
@@ -214,6 +198,7 @@ int main() {
             }
         }
 
+        // button polling
         ButtonState btn = button_poll(now);
         switch (btn) {
             case BTNST_PRESSED:
@@ -319,8 +304,6 @@ int main() {
             if ((!wifi_connected) || (!mqtt_connected)) LED_TOGGLE();
             else LED_OFF();
         }
-
-        //sleep_ms(10);
     }
 
     cyw43_arch_deinit();
