@@ -143,6 +143,7 @@ int main() {
     uint32_t led_t = millis();
     uint32_t lock_last_updated_t = millis();
     uint32_t lock_request_t = millis();
+    uint32_t ledw_t = millis();
 
     uint32_t wifi_led_t = millis();
 
@@ -304,6 +305,15 @@ int main() {
             if (r > 10) r = (int)r * 8 / 10;
             if (g > 10) g = (int)g * 8 / 10;
             if (b > 0) b = (int)b * 4 / 10;
+        }
+
+        // wifi & mqtt status blinking
+        if ((now - ledw_t) > 200) {
+            ledw_t = now;
+
+            if (!wifi_connected) LED_ON();
+            else if (!mqtt_connected) LED_TOGGLE();
+            else LED_OFF();
         }
 
         //sleep_ms(10);
