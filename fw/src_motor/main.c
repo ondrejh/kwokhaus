@@ -180,11 +180,11 @@ int main() {
       gpio_put(ENABLE_R_PIN, true);
       pwm_set_gpio_level(PWM_R_PIN, pwm);
       pwm_set_gpio_level(PWM_L_PIN, 0);
-      if (r == 0) {
+      /*if (r == 0) {
         r = 0x10;
         g = 0x0;
         put_pixel(urgb_u32(r,g,b));
-      }
+      }*/
     }
     else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
       gpio_put(ENABLE_L_PIN, true);
@@ -192,21 +192,21 @@ int main() {
       pwm_set_gpio_level(PWM_R_PIN, 0);
       pwm_set_gpio_level(PWM_L_PIN, pwm);
 
-      if (g == 0) {
+      /*if (g == 0) {
         g = 0x10;
         r = 0x0;
         put_pixel(urgb_u32(r,g,b));
-      }
+      }*/
     }
     else {
       gpio_put(PWM_L_PIN, false);
       gpio_put(PWM_R_PIN, false);
       pwm_set_gpio_level(PWM_R_PIN, 0);
       pwm_set_gpio_level(PWM_L_PIN, 0);
-      if ((r != 0) || (g != 0)) {
+      /*if ((r != 0) || (g != 0)) {
         r = g = 0;
         put_pixel(urgb_u32(r,g,b));
-      }
+      }*/
     }
 
     if (adc_poll(now, adc)) {
@@ -222,6 +222,7 @@ int main() {
     }
 
     if (motor_status & MOTOR_RUNNING) {
+      motor_status &= ~MOTOR_IS_END;
       if ((adc[1] > CURRENT_MIN) || (adc[2] > CURRENT_MIN)) {
         motor_current_t = now;
       }
@@ -263,21 +264,25 @@ int main() {
       }
     }*/
 
-    // live led (green)
-    if (led && ((now - tLed) >= 10)) {
-      led = false;
-      b = 0x00;
-      put_pixel(urgb_u32(r,g,b));
-    }
-    if (!led && ((now - tLed) > 1000)) {
-      //printf("%d %d %d %d %d\n", cnt, adc[0], adc[1], adc[2], adc2u(adc[0]));
-      //if (!comm_tx_busy()) {
-      //  comm_write("Hello UART\r\n", 12);
-      //}
-      led = true;
-      b = 0x10;
-      put_pixel(urgb_u32(r,g,b));
+    // led status
+    if ((now - tLed) > 250) {
       tLed = now;
+      if (motor_status & (MOTOR_GO_UP | MOTOR_FORCE_UP)) {
+        g = (g == 0x10) ? 0 : 0x10;
+        r = 0;
+      }
+      else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
+        r = (r == 0x10) ? 0 : 0x10;
+        g = 0;
+      }
+      else if (motor_status & MOTOR_IS_END) {
+        g = (motor_status & MOTOR_IS_UP) ? 0x10 : 0;
+        r = (motor_status & MOTOR_IS_DOWN) ? 0x10 : 0;
+      }
+      else {
+        r = g = 0;
+      }
+      put_pixel(urgb_u32(r,g,b));
     }
 
     /*// event notification

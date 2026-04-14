@@ -28,15 +28,16 @@
 
 #define MOTOR_GO_UP (1<<0)
 #define MOTOR_GO_DOWN (1<<1)
-#define MOTOR_RUNNING (MOTOR_GO_UP | MOTOR_GO_DOWN)
-#define MOTOR_FORCE_UP (1<<2)
-#define MOTOR_FORCE_DOWN (1<<3)
-#define MOTOR_IS_UP (1<<4)
-#define MOTOR_IS_DOWN (1<<5)
+#define MOTOR_RUNNING (MOTOR_GO_UP | MOTOR_GO_DOWN | MOTOR_FORCE_UP | MOTOR_FORCE_DOWN)
+#define MOTOR_IS_UP (1<<2)
+#define MOTOR_IS_DOWN (1<<3)
+#define MOTOR_IS_END (MOTOR_IS_UP | MOTOR_IS_DOWN)
+#define MOTOR_FORCE_UP (1<<4)
+#define MOTOR_FORCE_DOWN (1<<5)
+#define MOTOR_FORCE (MOTOR_FORCE_UP | MOTOR_FORCE_DOWN)
 
-#define MOTOR_SAFETY_TIMEOUT 30000 // ms
-#define MOTOR_CURRENT_TIMEOUT 500 // ms 
-
-#define CURRENT_MIN 0x150
+#define MOTOR_SAFETY_TIMEOUT 30000 // ms (stop motor if it runs for too long without reaching end position)
+#define MOTOR_CURRENT_TIMEOUT 200 // ms (stop motor if it runs without current - end switch is reached
+#define CURRENT_MIN 0x150 // no current adc value > 0x100, but we want to be safe
 
 #endif // __CONFIG_H__
