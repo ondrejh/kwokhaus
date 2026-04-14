@@ -99,6 +99,7 @@ void init(void) {
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
 
+
 int main() {
   stdio_init_all();         // Inicializace USB CDC
 
@@ -120,31 +121,80 @@ int main() {
   uint32_t pwm = 0;
   uint16_t voltage = 0;
 
+  uint8_t motor_status = 0;
+  uint32_t motor_running_t = 0;
+  uint32_t motor_current_t = 0;
+
   while (true) {
     int32_t now = millis();
 
     button_poll(&btnL, now);
     button_poll(&btnR, now);
 
-    if (btnL.st == BTNST_HOLD) {
-      gpio_put(ENABLE_L_PIN, true);
-      gpio_put(ENABLE_R_PIN, true);
-      pwm_set_gpio_level(PWM_R_PIN, 0);
-      pwm_set_gpio_level(PWM_L_PIN, pwm);
-      if ((r == 0) || (g != 0)) {
-        g = 0;
-        r = 0x10;
-        put_pixel(urgb_u32(r,g,b));
+    // start motor up/down
+    if (btnL.st == BTNST_PRESSED) {
+      if (motor_status & MOTOR_RUNNING) {
+        printf("MOTOR STOP\n");
+        motor_status &= ~MOTOR_RUNNING;
+      }
+      else {
+        printf("MOTOR UP\n");
+        motor_status |= MOTOR_GO_UP;
+        motor_running_t = now;
       }
     }
+    else if (btnR.st == BTNST_PRESSED) {
+      if (motor_status & MOTOR_RUNNING) {
+        printf("MOTOR STOP\n");
+        motor_status &= ~MOTOR_RUNNING;
+      }
+      else {
+        printf("MOTOR DOWN\n");
+        motor_status |= MOTOR_GO_DOWN;
+        motor_running_t = now;
+      }
+    }
+
+    if (motor_status & MOTOR_RUNNING) {
+      if ((now - motor_running_t) > MOTOR_SAFETY_TIMEOUT) { // safety timeout
+        printf("MOTOR TIMEOUT\n");
+        motor_status &= ~MOTOR_RUNNING;
+      }
+    }
+
+    // force motor up/down
+    if (btnL.st == BTNST_HOLD) {
+      motor_status |= MOTOR_FORCE_UP;
+      motor_status &= ~(MOTOR_GO_DOWN | MOTOR_FORCE_DOWN | MOTOR_GO_UP);
+    }
     else if (btnR.st == BTNST_HOLD) {
+      motor_status |= MOTOR_FORCE_DOWN;
+      motor_status &= ~(MOTOR_GO_UP | MOTOR_FORCE_UP | MOTOR_GO_DOWN);
+    }
+    else {
+      motor_status &= ~(MOTOR_FORCE_UP | MOTOR_FORCE_DOWN);
+    }
+
+    if (motor_status & (MOTOR_GO_UP | MOTOR_FORCE_UP)) {
       gpio_put(ENABLE_L_PIN, true);
       gpio_put(ENABLE_R_PIN, true);
       pwm_set_gpio_level(PWM_R_PIN, pwm);
       pwm_set_gpio_level(PWM_L_PIN, 0);
-      if ((g == 0) || (r != 0)) {
-        r = 0;
+      if (r == 0) {
+        r = 0x10;
+        g = 0x0;
+        put_pixel(urgb_u32(r,g,b));
+      }
+    }
+    else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
+      gpio_put(ENABLE_L_PIN, true);
+      gpio_put(ENABLE_R_PIN, true);
+      pwm_set_gpio_level(PWM_R_PIN, 0);
+      pwm_set_gpio_level(PWM_L_PIN, pwm);
+
+      if (g == 0) {
         g = 0x10;
+        r = 0x0;
         put_pixel(urgb_u32(r,g,b));
       }
     }
@@ -168,6 +218,26 @@ int main() {
       tAdc = now;
       printf("%04X %04X %04X\n", adc[0], adc[1], adc[2]);
       printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
+      printf("Motor status: %x\n", motor_status);
+    }
+
+    if (motor_status & MOTOR_RUNNING) {
+      if ((adc[1] > CURRENT_MIN) || (adc[2] > CURRENT_MIN)) {
+        motor_current_t = now;
+      }
+      else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
+        if (motor_status & MOTOR_GO_UP) {
+          motor_status |= MOTOR_IS_UP;
+          printf("MOTOR IS UP\n");
+        }
+        else if (motor_status & MOTOR_GO_DOWN) {
+          motor_status |= MOTOR_IS_DOWN;
+          printf("MOTOR IS DOWN\n");
+        }
+        motor_status &= ~MOTOR_RUNNING;
+      }
+    } else {
+      motor_current_t = now;
     }
 
     //event_t event = get_input_event(now);
