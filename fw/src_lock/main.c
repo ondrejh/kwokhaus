@@ -4,10 +4,8 @@
 
 const uint16_t adc_vref = 3300; // 3.3V
 
-#define VIN_CORR_PERCENT 86
-
 uint16_t adc2u(uint16_t adc) {
-  uint16_t res = (uint32_t)(((uint32_t)adc * adc_vref * 11) / ((uint32_t)4096 * ADC_OVERSAMPLE) * VIN_CORR_PERCENT / 100);
+  uint16_t res = (uint32_t)(((uint32_t)adc * adc_vref * 11) / ((uint32_t)4096 * ADC_OVERSAMPLE));
   return (uint16_t)res;
 }
 

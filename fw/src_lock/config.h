@@ -9,8 +9,8 @@
 //#define LIFE_LED
 
 // GPIO
-#define LED_GREEN_PIN 12
-#define BUTTON_PIN 13
+#define LED_GREEN_PIN 13
+#define BUTTON_PIN 12
 #define TRIGGER_PIN 14
 #define LOCK_PIN 15
 #define SENSE_ADC_PIN 26
