@@ -2,3 +2,6 @@ trigger/trigger-backups/
 trigger/*-bak
 trigger/~*
 trigger/.history
+motor/.history
+motor/motor-backups
+*.bak
