@@ -2,6 +2,12 @@
 #define __CONFIG_H__
 
 // GPIO
+//#define FIRST_PROTOTYPE
+#ifdef FIRST_PROTOTYPE
+
+// pin configuration of first prototype
+#warning "First prototype pin configuration"
+
 #define BUTTON_L_PIN 14
 #define BUTTON_R_PIN 15
 
@@ -9,6 +15,18 @@
 #define ENABLE_L_PIN 7
 #define PWM_R_PIN 6
 #define PWM_L_PIN 5
+
+#else // ifdef FIRST_PROTOTYPE
+
+#define BUTTON_L_PIN 9
+#define BUTTON_R_PIN 10
+
+#define ENABLE_R_PIN 15
+#define ENABLE_L_PIN 14
+#define PWM_R_PIN 13
+#define PWM_L_PIN 12
+
+#endif // else FIRST_PROTOTYPE
 
 #define RGB_LED_PIN 16
 

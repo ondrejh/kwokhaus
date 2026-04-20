@@ -662,7 +662,7 @@
       {
         "filename": "trigger.kicad_sch",
         "name": "trigger",
-        "uuid": "9d6aa6a3-975e-4ebc-88ff-e01204bd60d9"
+        "uuid": "00000000-0000-0000-0000-000000000000"
       }
     ],
     "used_designators": "",
@@ -671,7 +671,7 @@
   "sheets": [
     [
       "9d6aa6a3-975e-4ebc-88ff-e01204bd60d9",
-      "trigger"
+      "Root"
     ]
   ],
   "text_variables": {},
