@@ -1,8 +1,12 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+// Name will be used as comm identifier
+#define DEV_NAME "KWOK"
+#define STATUS_REPEAT_PERIOD 30 * 60 * 1000
+
 // GPIO
-//#define FIRST_PROTOTYPE
+#define FIRST_PROTOTYPE
 #ifdef FIRST_PROTOTYPE
 
 // pin configuration of first prototype

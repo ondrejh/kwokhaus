@@ -99,6 +99,7 @@ void init(void) {
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
 
+GateState gate = GATE_UNKNOWN;
 
 int main() {
   stdio_init_all();         // Inicializace USB CDC
@@ -113,6 +114,8 @@ int main() {
   button_init(&btnL, BUTTON_L_PIN);
   button_init(&btnR, BUTTON_R_PIN);
 
+  comm_init();
+
   tDisp = millis();
 
   uint32_t cnt = 0;
@@ -125,11 +128,56 @@ int main() {
   uint32_t motor_running_t = 0;
   uint32_t motor_current_t = 0;
 
+  uint32_t tLastTx = 0;
+
   while (true) {
     int32_t now = millis();
+    event_t event = EVENT_NONE;
 
+    int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
+    if (comrx) {
+      comm_buff[comrx] = '\0';
+      printf("Rx: %.*s\n", COMM_BUFLEN, comm_buff);
+      comrx = comm_parse(comm_buff, comrx, COMM_BUFLEN, &event);
+      if (comrx) {
+        comm_buff[comrx] = '\0';
+        if (!comm_tx_busy()) {
+          tLastTx = now;
+          comm_write(comm_buff, comrx);
+          printf("TX: %s\n", comm_buff);
+        }
+        else
+          printf("TX BUSY\n");
+      }
+    }
+
+    if ((!comm_tx_busy()) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
+      tLastTx = now;
+      comrx = sprint_status(comm_buff, COMM_BUFLEN);
+      comm_write(comm_buff, comrx);
+      printf("TX: %s\n", comm_buff);
+    }
+
+
+    // button polling and event generation
     button_poll(&btnL, now);
     button_poll(&btnR, now);
+    if (event == EVENT_NONE) {
+      event = get_button_event(btnL.st, btnR.st, now);
+    }
+
+    if ((motor_status & MOTOR_RUNNING) == 0) {
+      if (event == EVENT_CMD_OPEN) {
+        printf("EVENT: OPEN\n");
+        motor_status |= MOTOR_GO_UP;
+        motor_running_t = now;
+      }
+      else if (event == EVENT_CMD_CLOSE) {
+        printf("EVENT: CLOSE\n");
+        motor_status |= MOTOR_GO_DOWN;
+        motor_running_t = now;
+      }
+    }
 
     // start motor up/down
     if (btnL.st == BTNST_PRESSED) {
@@ -212,16 +260,19 @@ int main() {
     // motor current monitoring
     if (motor_status & MOTOR_RUNNING) {
       motor_status &= ~MOTOR_IS_END;
+      gate = GATE_UNKNOWN;
       if ((adc[1] > CURRENT_MIN) || (adc[2] > CURRENT_MIN)) {
         motor_current_t = now;
       }
       else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
         if (motor_status & MOTOR_GO_UP) {
           motor_status |= MOTOR_IS_UP;
+          gate = GATE_OPEN;
           printf("MOTOR IS UP\n");
         }
         else if (motor_status & MOTOR_GO_DOWN) {
           motor_status |= MOTOR_IS_DOWN;
+          gate = GATE_CLOSED;
           printf("MOTOR IS DOWN\n");
         }
         motor_status &= ~MOTOR_RUNNING;
