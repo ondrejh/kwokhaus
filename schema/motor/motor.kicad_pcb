@@ -9164,6 +9164,45 @@
 		(layer "Edge.Cuts")
 		(uuid "13b0d0d4-4cee-4ad1-89a5-2c08b4477625")
 	)
+	(gr_text "https://github.com/ondrejh/kwokhaus"
+		(at 96.266 75.692 270)
+		(layer "B.Mask")
+		(uuid "9a25c764-c9e8-4c20-a14f-a0ed789109c4")
+		(effects
+			(font
+				(size 0.9 0.9)
+				(thickness 0.225)
+				(bold yes)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(gr_text "Chicken Squasher v0.1"
+		(at 98.425 67.945 270)
+		(layer "B.Mask")
+		(uuid "6e91d888-d7c6-429f-bf34-b2980fb7c50a")
+		(effects
+			(font
+				(size 0.9 0.9)
+				(thickness 0.225)
+				(bold yes)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(gr_text "OH2605"
+		(at 144.018 49.149 90)
+		(layer "B.Mask")
+		(uuid "7912812d-f322-47f5-99a4-51a7f117f489")
+		(effects
+			(font
+				(size 1.2 1.2)
+				(thickness 0.3)
+				(bold yes)
+			)
+			(justify left bottom mirror)
+		)
+	)
 	(gr_text "RX"
 		(at 96.393 88.011 0)
 		(layer "F.SilkS")
@@ -9263,6 +9302,19 @@
 			(font
 				(size 1 1)
 				(thickness 0.2)
+				(bold yes)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "https://github.com/ondrejh/kwokhaus"
+		(at 115.062 56.769 0)
+		(layer "F.SilkS")
+		(uuid "afd5e13b-415c-451d-9c9a-eed5f15ac2cd")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.25)
 				(bold yes)
 			)
 			(justify left bottom)
@@ -9793,12 +9845,36 @@
 		(uuid "37df7206-c467-4996-9c5c-c8ff6d0a4d6c")
 	)
 	(segment
+		(start 125.222 85.217)
+		(end 125.222 85.852)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "3cb35e52-b21c-4fdb-a079-42c3edc36e5e")
+	)
+	(segment
+		(start 99.835 80.645)
+		(end 100.33 80.15)
+		(width 0.6)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "3efe0661-4f41-449e-9db4-554e0232187a")
+	)
+	(segment
 		(start 97.79 80.645)
 		(end 99.835 80.645)
 		(width 0.6)
 		(layer "F.Cu")
 		(net "GND")
-		(uuid "4ef0d763-43c8-483a-bafd-9e989d4f11f9")
+		(uuid "5c915dfc-e9cf-47cb-a445-817925d0b469")
+	)
+	(segment
+		(start 124.46 85.865)
+		(end 125.934 85.865)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "6f1d208a-5be7-4379-a440-03c02a3a0879")
 	)
 	(segment
 		(start 140.528 80.9475)
@@ -9807,14 +9883,6 @@
 		(layer "F.Cu")
 		(net "GND")
 		(uuid "76ac63ae-fb6f-46d6-8edb-5b07ec7526de")
-	)
-	(segment
-		(start 99.835 80.645)
-		(end 100.33 80.15)
-		(width 0.6)
-		(layer "F.Cu")
-		(net "GND")
-		(uuid "7b543c6b-a82b-440e-b91b-31b5e31a54ff")
 	)
 	(segment
 		(start 124.46 89.535)
@@ -9857,12 +9925,36 @@
 		(uuid "b09d74ee-4e3a-468d-9f6e-4e97d24a837d")
 	)
 	(segment
+		(start 125.285 85.915)
+		(end 125.984 85.915)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "b3100bac-d1b4-4f5a-868e-75f97af03e97")
+	)
+	(segment
 		(start 124.46 90.665)
 		(end 124.46 89.535)
 		(width 0.6)
 		(layer "F.Cu")
 		(net "GND")
 		(uuid "c0c9de74-8da4-4222-b4a8-c7d34aee25c6")
+	)
+	(segment
+		(start 125.934 85.865)
+		(end 125.984 85.915)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "f2aab7bf-72de-405c-9139-6524e7cd7895")
+	)
+	(segment
+		(start 125.222 85.852)
+		(end 125.285 85.915)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "f8a47b9d-ec52-4445-bbd3-767201a80f7f")
 	)
 	(via
 		(at 139.192 44.704)
@@ -9899,6 +9991,15 @@
 		(free yes)
 		(net "GND")
 		(uuid "11496ce4-91b7-4737-b64b-93c58b5de4a5")
+	)
+	(via
+		(at 125.222 85.217)
+		(size 0.6)
+		(drill 0.3)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net "GND")
+		(uuid "348c1438-3619-4d9e-b065-2a73c5f04372")
 	)
 	(via
 		(at 96.012 88.9)
