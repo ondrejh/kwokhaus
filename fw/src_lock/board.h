@@ -22,7 +22,16 @@ typedef enum {
   BTNST_LONG_PRESSED,
 } ButtonState;
 
+typedef enum {
+  PIRST_UNKNOWN,
+  PIRST_OCUPY_NOW,
+  PIRST_OCUPY,
+  PIRST_FREE_NOW,
+  PIRST_FREE,
+} PirState;
+
 LockState lock_poll(uint32_t t);
 ButtonState button_poll(uint32_t t);
+PirState pir_poll(uint32_t t);
 
 #endif // __BOARD_H__

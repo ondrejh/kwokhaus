@@ -92,3 +92,42 @@ ButtonState button_poll(uint32_t now) {
 
   return st;
 }
+
+PirState pir_poll(uint32_t now) {
+  static PirState st = PIRST_UNKNOWN;
+  static uint32_t tout;
+  bool pir = gpio_get(PIR_INPUT_PIN);
+
+  // clear special states
+  if (st == PIRST_FREE_NOW)
+    st = PIRST_FREE;
+  if (st == PIRST_OCUPY_NOW)
+    st = PIRST_OCUPY;
+
+  // get state  
+  switch (st) {
+    case PIRST_UNKNOWN:
+      st = pir ? PIRST_OCUPY : PIRST_FREE;
+      tout = now;
+      break;
+    case PIRST_OCUPY:
+      //gpio_put(LED_GREEN_PIN, true);
+      if (pir)
+        tout = now;
+      else if ((now - tout) > PIR_RELEASE_TIMEOUT)
+        st = PIRST_FREE_NOW;
+      break;
+    case PIRST_FREE:
+      //gpio_put(LED_GREEN_PIN, false);
+      if (!pir)
+        tout = now;
+      else if ((now - tout) > PIR_OCUPY_TIMEOUT)
+        st = PIRST_OCUPY_NOW;
+      break;
+    default:
+      st = PIRST_UNKNOWN;
+      break;
+  }
+  
+  return st;
+}

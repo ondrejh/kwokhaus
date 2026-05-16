@@ -25,6 +25,19 @@ event_t get_input_event(uint32_t now) {
       event = EVENT_LONGPRESS;
   }
 
+  // collect pir events
+  if (event == EVENT_NONE) {
+    PirState pir = pir_poll(now);
+    if (pir == PIRST_FREE_NOW) {
+      //gpio_put(LED_GREEN_PIN, false);
+      event = EVENT_FREE;
+    }
+    else if (pir == PIRST_OCUPY_NOW) {
+      //gpio_put(LED_GREEN_PIN, true);
+      event = EVENT_OCUPY;
+    }
+  }
+
   return event;
 }
 

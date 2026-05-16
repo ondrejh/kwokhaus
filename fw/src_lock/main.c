@@ -39,15 +39,24 @@ bool adc_poll(uint32_t now, uint16_t *adc) {
 
 void init(void) {
   // Initialize outputs
+  // LED
   gpio_init(LED_GREEN_PIN);
   gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
+  // Unlock trigger
   gpio_init(TRIGGER_PIN);
   gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
+  // Button
   gpio_init(BUTTON_PIN);
   gpio_set_dir(BUTTON_PIN, GPIO_IN);
   gpio_set_pulls(BUTTON_PIN, true, false);
+  // Lock state input
+  gpio_init(LOCK_PIN);
   gpio_set_dir(LOCK_PIN, GPIO_IN);
   gpio_set_pulls(LOCK_PIN, true, false);
+  // PIR sensor input
+  gpio_init(PIR_INPUT_PIN);
+  gpio_set_dir(PIR_INPUT_PIN, GPIO_IN);
+  gpio_set_pulls(PIR_INPUT_PIN, true, false);
 
 #ifdef USE_PWM_OUT
   // Initialize PWM
@@ -102,7 +111,6 @@ int main() {
     if (comrx) { // echo test
       comrx = strip(comm_buff, comrx);
       if (comrx) {
-        comm_buff[comrx] = '\0';
         printf("RX: %s\n", comm_buff);
 
         comrx = comm_parse(comm_buff, comrx, COMM_BUFLEN, &event);
@@ -160,6 +168,14 @@ int main() {
         printf("Unlock command received\n");
         trig_now = true;
         break;
+      case EVENT_FREE:
+        printf("Kwokhaus is free\n");
+        gpio_put(LED_GREEN_PIN, false);
+        break;
+      case EVENT_OCUPY:
+        printf("Kwokhaus ocupied\n");
+        gpio_put(LED_GREEN_PIN, true);
+        break;
       case EVENT_NONE:
       default:
         break;
@@ -198,6 +214,6 @@ int main() {
       put_pixel(urgb_u32(r,g,b));
     }
 
-    gpio_put(LED_GREEN_PIN, comm_tx_busy());
+    //gpio_put(LED_GREEN_PIN, comm_tx_busy());
   }
 }

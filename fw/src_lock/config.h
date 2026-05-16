@@ -1,12 +1,19 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#define TESTING
+
 // Name will be used as comm identifier
+#ifdef TESTING
+#define DEV_NAME "TST"
+#define LIFE_LED
+#define COMM_TIMEOUT 1000 // ms
+#else // not TESTING (production)
 #define DEV_NAME "KWAK"
+#define COMM_TIMEOUT 100 // ms
+#endif // TESTING
 #define LOCK_TIMEOUT 1000 // ms
 #define STATUS_REPEAT_PERIOD 30 * 60 * 1000
-
-//#define LIFE_LED
 
 // GPIO
 #define LED_GREEN_PIN 13
@@ -14,6 +21,7 @@
 #define TRIGGER_PIN 14
 #define LOCK_PIN 15
 #define SENSE_ADC_PIN 26
+#define PIR_INPUT_PIN 6
 
 // Voltage sense ADC
 #define SENSE_VIN_PIN 26
@@ -24,6 +32,14 @@
 
 #define PWM_PERIOD 62500 // 5kHz
 #define VOLT_FULL_PWR 13000 // mV
+
+#ifdef TESTING
+#define PIR_OCUPY_TIMEOUT 1000 // ms
+#define PIR_RELEASE_TIMEOUT 3000 // ms
+#else
+#define PIR_OCUPY_TIMEOUT 10000 // ms
+#define PIR_RELEASE_TIMEOUT 30000 // ms
+#endif
 
 //#define TIME_POLLING_PERIOD 1000 // ms
 

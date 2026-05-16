@@ -183,7 +183,7 @@ int strip(uint8_t *buff, int len) {
     memmove(buff, &buff[beg], nlen);
   }
   
-  buff[end] = '\0';
+  buff[nlen] = '\0';
   return nlen;
 }
 

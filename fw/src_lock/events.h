@@ -11,6 +11,8 @@ typedef enum {
   EVENT_LOCK,
   EVENT_UNLOCK,
   EVENT_CMD_UNLOCK,
+  EVENT_OCUPY,
+  EVENT_FREE,
 } event_t;
 
 event_t get_input_event(uint32_t now);
