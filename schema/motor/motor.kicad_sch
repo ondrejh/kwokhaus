@@ -3125,6 +3125,16 @@
 		)
 		(uuid "62da8f86-98c2-42f3-9c9c-e86af658c91d")
 	)
+	(text "Chicken Squasher v0.1"
+		(exclude_from_sim no)
+		(at 230.124 175.26 0)
+		(effects
+			(font
+				(size 3.81 3.81)
+			)
+		)
+		(uuid "7bf409be-8f92-4aea-81fa-50a0ba9f7f6c")
+	)
 	(text "Modem (MeshTastic)"
 		(exclude_from_sim no)
 		(at 56.642 32.512 0)
@@ -7112,7 +7122,7 @@
 		(fields_autoplaced yes)
 		(uuid "48225070-1b6b-42b8-9b94-0b0f2dbb0dba")
 		(property "Reference" "IC2"
-			(at 44.45 156.2099 0)
+			(at 44.45 154.9399 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7122,7 +7132,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" ""
+		(property "Value" "+5V REG"
 			(at 44.45 157.4799 0)
 			(show_name no)
 			(do_not_autoplace no)
