@@ -5,7 +5,13 @@ Attempt on some eggish automation.
 # ToDo
 
 - [x] remote controlled kwakhaus lock (status, unlock)
-- [ ] kwokhaus door motor controll
+- [x] kwokhaus door motor control
+- [ ] kwakhaus lock sensor and light features (firmware)
+  - [ ] add rgb light capability
+  - [ ] add temperature sensor feature
+  - [ ] pir sensor input
+  - [ ] enhance status message
+  - [ ] add light control message
 
 ---
 
