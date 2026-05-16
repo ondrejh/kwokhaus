@@ -15,6 +15,14 @@ typedef enum {
   BTNST_LONG_PRESSED,
 } ButtonState;
 
+typedef enum {
+  GATE_UNKNOWN,
+  GATE_CLOSED,
+  GATE_OPENING,
+  GATE_OPEN,
+  GATE_CLOSING,
+} GateState;
+
 typedef struct btn_ctx_t {
   uint32_t t;
   uint32_t cnt1, cnt2;

@@ -18,8 +18,8 @@
 
 #include "config.h"
 #include "nvdata.h"
-//#include "comm.h"
 #include "board.h"
-//#include "events.h"
+#include "events.h"
+#include "comm.h"
 
 #endif // __INCLUDES_H__

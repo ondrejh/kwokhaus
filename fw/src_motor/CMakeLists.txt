@@ -20,6 +20,8 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME}
   main.c
   board.c
+  comm.c
+  events.c
   nvdata.c
   ws2812.c
   ws2812.pio
@@ -33,7 +35,6 @@ target_link_libraries(${PROJECT_NAME}
   hardware_pio
   hardware_uart
   hardware_adc
-  #hardware_dma
   hardware_pwm
 )
 
