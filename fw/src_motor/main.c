@@ -166,6 +166,7 @@ int main() {
       event = get_button_event(btnL.st, btnR.st, now);
     }
 
+    // remote command processing
     if ((motor_status & MOTOR_RUNNING) == 0) {
       if (event == EVENT_CMD_OPEN) {
         printf("EVENT: OPEN\n");
