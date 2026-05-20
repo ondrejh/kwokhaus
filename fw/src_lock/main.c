@@ -75,11 +75,19 @@ void init(void) {
   comm_init();
 
   // Initialize onboard NeoPixel
-  ws2812_init(16);
+  led_rgb_onboard_init(16);
+  led_onboard(urgb_u32(0, 0, 0));
+
+  // Initialize RGB Light
+  rgb_light_init(3);
+  rgb_light(urgb_u32(0, 0, 0));
 }
 
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
+
+#define LIGHT_CHANGE_SLOW (1*60000/256) // 1 min
+#define LIGHT_CHANGE_FAST (3000/256) // 3s
 
 int main() {
   stdio_init_all();         // Inicializace USB CDC
@@ -98,6 +106,11 @@ int main() {
 
   uint32_t pwm = 0;
   uint16_t voltage = 0;
+
+  bool light = true;
+  uint8_t lightPwr = 0;
+  uint32_t tLight = 0;
+  uint32_t lightChng = LIGHT_CHANGE_SLOW;
 
   while (true) {
     int32_t now = millis();
@@ -139,12 +152,12 @@ int main() {
     if (led && ((now - tLed) >= 10)) {
       led = false;
       b = 0x00;
-      put_pixel(urgb_u32(r,g,b));
+      led_onboard(urgb_u32(r,g,b));
     }
     if (!led && ((now - tLed) > 2000)) {
       led = true;
       b = 0x10;
-      put_pixel(urgb_u32(r,g,b));
+      led_onboard(urgb_u32(r,g,b));
       tLed = now;
     }
   #endif
@@ -153,11 +166,15 @@ int main() {
     switch (event) {
       case EVENT_PRESS:
         printf("Button pressed\n");
+        light = !light;
+        lightChng = LIGHT_CHANGE_FAST;
         break;
       case EVENT_LONGPRESS:
         printf("Button long pressed\n");
         break;
       case EVENT_LOCK:
+        light = false;
+        lightChng = LIGHT_CHANGE_SLOW;
       case EVENT_UNLOCK:
         printf("Lock %s\n", (event==EVENT_LOCK)?"locked":"unlocked");
         comrx = sprint_status(comm_buff, COMM_BUFLEN);
@@ -202,7 +219,7 @@ int main() {
       gpio_put(TRIGGER_PIN, trig);
 #endif
       r = 0;
-      put_pixel(urgb_u32(r,g,b));
+      led_onboard(urgb_u32(r,g,b));
     }
     if (!trig && trig_now) {
       tTrig = now;
@@ -211,7 +228,19 @@ int main() {
       gpio_put(TRIGGER_PIN, trig);
 #endif
       r = 0x80;
-      put_pixel(urgb_u32(r,g,b));
+      led_onboard(urgb_u32(r,g,b));
+    }
+
+    // light
+    if ((light && (lightPwr<255)) || (!light && (lightPwr > 0))) {
+      if ((now - tLight) >= lightChng) {
+        tLight = now;
+        lightPwr += light ? 1 : -1;
+        rgb_light(urgb_u32(lightPwr, lightPwr, lightPwr));
+      }
+    } 
+    else {
+      tLight = now;
     }
 
     //gpio_put(LED_GREEN_PIN, comm_tx_busy());
