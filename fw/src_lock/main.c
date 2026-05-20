@@ -39,7 +39,7 @@ bool adc_poll(uint32_t now, uint16_t *adc) {
   return false;
 }
 
-#define REG_RESET _u(0xE0)
+/*#define REG_RESET _u(0xE0)
 
 #define REG_TEMP_XLSB _u(0xFC)
 #define REG_TEMP_LSB _u(0xFB)
@@ -276,19 +276,6 @@ bool bme280_read_raw(int32_t* temp, int32_t* pressure, int32_t* humidity) {
 
 // 1. KOMPENZACE TEPLOTY
 // Vrací teplotu v setinách stupně Celsia (např. 2513 znamená 25.13 °C)
-/*int32_t bme280_convert_temp(int32_t adc_T, struct bme280_calib_param* params) {
-    int32_t var1, var2, T;
-    
-    var1 = ((((adc_T >> 3) - ((int32_t)params->dig_t1 << 1))) * ((int32_t)params->dig_t2)) >> 11;
-    var2 = (((((adc_T >> 4) - ((int32_t)params->dig_t1)) * ((adc_T >> 4) - ((int32_t)params->dig_t1))) >> 12) * ((int32_t)params->dig_t3)) >> 14;
-    
-    // Uložení t_fine do struktury - kritické pro následný tlak a vlhkost!
-    params->t_fine = var1 + var2; 
-    
-    T = (params->t_fine * 5 + 128) >> 8;
-    return T;
-}*/
-
 int32_t bme280_convert_temp(int32_t adc_T, struct bme280_calib_param* params) {
     int32_t var1, var2, T;
     
@@ -355,7 +342,7 @@ int32_t bme280_convert_humidity(int32_t adc_H, struct bme280_calib_param* params
     v_x1_u32r = (v_x1_u32r > 419430400 ? 419430400 : v_x1_u32r);
     
     return (v_x1_u32r >> 12);
-}
+}*/
 
 void init(void) {
   // Initialize outputs
@@ -402,6 +389,7 @@ void init(void) {
   rgb_light_init(3);
   rgb_light(urgb_u32(0, 0, 0));
 
+  // BME280 temperature, pressure, humidity sensor init
   if (!bme280_init()) {
     printf("BME280 not connected!\n");
   }
@@ -596,16 +584,9 @@ int main() {
       tLight = now;
     }
 
-    if ((now - tBme280) > 5000) {
-      tBme280 = now;
-      int32_t rtemp, rpress, rhum;
-      if (bme280_read_raw(&rtemp, &rpress, &rhum)) {
-        //printf("Kalibrace T1: %d, T2: %d, T3: %d\n", bme280_params.dig_t1, bme280_params.dig_t2, bme280_params.dig_t3);
-        //printf("raw temp 0x%X,  press 0x%X,  humi 0x%X\n", rtemp, rpress, rhum);
-        printf("Temp.    = %.1f C\n", bme280_convert_temp(rtemp, &bme280_params) / 100.f);
-        printf("Pressure = %.2f kPa\n", bme280_convert_pressure(rpress, &bme280_params) / 1000.f);
-        printf("Humidity = %.0f %%\n", bme280_convert_humidity(rhum, &bme280_params) / 1024.f);
-      }
+    // environment polling
+    if (env_poll(now)) {
+      printf("Envi: %.1fC, %.2fkPa, %.0f%%\n", env_temp / 100.f, env_press / 1000.f, env_humi / 1024.f);
     }
 
     //gpio_put(LED_GREEN_PIN, comm_tx_busy());

@@ -16,6 +16,7 @@
 
 #include "ws2812.pio.h"
 #include "ws2812.h"
+#include "bme280.h"
 
 #include "config.h"
 #include "board.h"
