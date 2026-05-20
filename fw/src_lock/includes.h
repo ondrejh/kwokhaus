@@ -12,6 +12,7 @@
 
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
+#include "hardware/i2c.h"
 
 #include "ws2812.pio.h"
 #include "ws2812.h"
