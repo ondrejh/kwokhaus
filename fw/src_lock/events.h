@@ -13,6 +13,7 @@ typedef enum {
   EVENT_CMD_UNLOCK,
   EVENT_OCUPY,
   EVENT_FREE,
+  EVENT_CMD_LIGHT,
 } event_t;
 
 event_t get_input_event(uint32_t now);

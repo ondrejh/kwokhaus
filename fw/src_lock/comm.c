@@ -148,6 +148,10 @@ int comm_parse(uint8_t *buff, int len, int max, event_t *event) {
         if (event != NULL)
           *event = EVENT_CMD_UNLOCK;
         break;
+      case 'L':
+        if (event != NULL)
+          *event = EVENT_CMD_LIGHT;
+        break;
       default:
         break;
     }

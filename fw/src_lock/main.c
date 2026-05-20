@@ -2,6 +2,8 @@
 
 #define USE_PWM_OUT
 
+extern LockState lock;
+
 const uint16_t adc_vref = 3300; // 3.3V
 
 uint16_t adc2u(uint16_t adc) {
@@ -86,8 +88,14 @@ void init(void) {
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
 
-#define LIGHT_CHANGE_SLOW (1*60000/256) // 1 min
-#define LIGHT_CHANGE_FAST (3000/256) // 3s
+uint32_t light_power_to_rgb(uint16_t pwr) {
+  if (pwr <= 0)
+    return urgb_u32(0, 0, 0);
+  if (pwr >= LIGHT_PWR_MAX)
+    return urgb_u32(255, 255, 255);
+  uint8_t p = pwr * 255 / LIGHT_PWR_MAX;
+  return urgb_u32(p, p, p);
+}
 
 int main() {
   stdio_init_all();         // Inicializace USB CDC
@@ -107,10 +115,12 @@ int main() {
   uint32_t pwm = 0;
   uint16_t voltage = 0;
 
-  bool light = true;
-  uint8_t lightPwr = 0;
+  bool light = false;
+  uint16_t lightPwr = 0;
   uint32_t tLight = 0;
   uint32_t lightChng = LIGHT_CHANGE_SLOW;
+  uint32_t tLightOff = 0;
+  uint32_t lightOffTout = 0;
 
   while (true) {
     int32_t now = millis();
@@ -168,12 +178,14 @@ int main() {
         printf("Button pressed\n");
         light = !light;
         lightChng = LIGHT_CHANGE_FAST;
+        if (light)
+          lightOffTout = LIGHT_OFF_TIMEOUT;
         break;
       case EVENT_LONGPRESS:
         printf("Button long pressed\n");
         break;
       case EVENT_LOCK:
-        light = false;
+        lightOffTout = LIGHT_OFF_TIMEOUT;
         lightChng = LIGHT_CHANGE_SLOW;
       case EVENT_UNLOCK:
         printf("Lock %s\n", (event==EVENT_LOCK)?"locked":"unlocked");
@@ -184,6 +196,13 @@ int main() {
       case EVENT_CMD_UNLOCK:
         printf("Unlock command received\n");
         trig_now = true;
+        break;
+      case EVENT_CMD_LIGHT:
+        printf("Light ON command received\n");
+        light = true;
+        if (lock==LOCK_LOCKED) {
+          lightOffTout = LIGHT_OFF_TIMEOUT;
+        }
         break;
       case EVENT_FREE:
         printf("Kwokhaus is free\n");
@@ -231,12 +250,22 @@ int main() {
       led_onboard(urgb_u32(r,g,b));
     }
 
-    // light
-    if ((light && (lightPwr<255)) || (!light && (lightPwr > 0))) {
+    // light off timeout
+    if (light & (lightOffTout != 0)) {
+      if ((now - tLightOff) >= (lightOffTout * 1000)) {
+        light = false;
+        lightOffTout = 0;
+      }
+    }
+    else {
+      tLightOff = now;
+    }
+    // light shade in/out
+    if ((light && (lightPwr<LIGHT_PWR_MAX)) || (!light && (lightPwr > 0))) {
       if ((now - tLight) >= lightChng) {
         tLight = now;
         lightPwr += light ? 1 : -1;
-        rgb_light(urgb_u32(lightPwr, lightPwr, lightPwr));
+        rgb_light(light_power_to_rgb(lightPwr));
       }
     } 
     else {

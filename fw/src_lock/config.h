@@ -34,12 +34,20 @@
 #define VOLT_FULL_PWR 13000 // mV
 
 #ifdef TESTING
-#define PIR_OCUPY_TIMEOUT 1000 // ms
-#define PIR_RELEASE_TIMEOUT 3000 // ms
+#define PIR_OCUPY_TIMEOUT 1000 // 1s
+#define PIR_RELEASE_TIMEOUT 3000 // 3s
+#define LIGHT_CHANGE_SLOW 60 // 1min
+#define LIGHT_CHANGE_FAST 3 // 3s
+#define LIGHT_OFF_TIMEOUT 60 // 1min
 #else
-#define PIR_OCUPY_TIMEOUT 10000 // ms
-#define PIR_RELEASE_TIMEOUT 30000 // ms
+#define PIR_OCUPY_TIMEOUT 10000 // 10s
+#define PIR_RELEASE_TIMEOUT 30000 // 30s
+#define LIGHT_CHANGE_SLOW 600 // 10min
+#define LIGHT_CHANGE_FAST 10 // 10s
+#define LIGHT_OFF_TIMEOUT 600 // 10min
 #endif
+#define LIGHT_PWR_MAX 1000
+
 
 //#define TIME_POLLING_PERIOD 1000 // ms
 
