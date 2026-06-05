@@ -442,7 +442,7 @@ int main() {
     event_t event = get_input_event(now); // input events
 
     // receive comm
-    int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
+    int comrx = comm_poll(now, COMM_TIMEOUT, comm_buff, COMM_BUFLEN);
     if (comrx) { // echo test
       comrx = strip(comm_buff, comrx);
       if (comrx) {
@@ -516,11 +516,11 @@ int main() {
         }
         break;
       case EVENT_FREE:
-        printf("Kwokhaus is free\n");
+        printf("Kwakhaus is free\n");
         gpio_put(LED_GREEN_PIN, false);
         break;
       case EVENT_OCUPY:
-        printf("Kwokhaus ocupied\n");
+        printf("Kwakhaus ocupied\n");
         gpio_put(LED_GREEN_PIN, true);
         break;
       case EVENT_NONE:
