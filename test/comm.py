@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import serial
 from pynput.keyboard import Key, Listener
 
