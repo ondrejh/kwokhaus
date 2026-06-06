@@ -14,6 +14,7 @@
 #endif // TESTING
 #define LOCK_TIMEOUT 1000 // ms
 #define STATUS_REPEAT_PERIOD 30 * 60 * 1000
+#define STATUS_REPEAT_MIN_PERIOD 30 * 1000
 
 // GPIO
 #define LED_GREEN_PIN 13

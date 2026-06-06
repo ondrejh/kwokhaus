@@ -22,6 +22,8 @@ typedef struct {
 // collect all the states needed to export
 //extern tim_t tloc;
 extern LockState lock;
+extern bool light;
+extern PirState pir;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
 buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
@@ -117,6 +119,13 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
 int sprint_status(uint8_t *buff, int max) {
   int len = snprintf(buff, max, "%s: ", DEV_NAME);
   len += snprintf(&buff[len], max - len, "%s", lock==LOCK_UNLOCKED? "UNLOCKED" : "LOCKED");
+  len += snprintf(&buff[len], max - len, " %s", (pir==PIRST_FREE) ? "FREE" : "OCUPY");
+  len += snprintf(&buff[len], max - len, " %s", light ? "LON" : "LOFF");
+  if (env_valid) {
+    len += snprintf(&buff[len], max - len, " (");
+    len += snprintf(&buff[len], max - len, "%.1fC, %.2fkPa, %.0f%%", env_temp / 100.f, env_press / 1000.f, env_humi / 1024.f);
+    len += snprintf(&buff[len], max - len, ")");
+  }
   return len;
 }
 

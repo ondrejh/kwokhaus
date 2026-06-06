@@ -1,5 +1,7 @@
 #include "includes.h"
 
+PirState pir = PIRST_UNKNOWN;
+
 event_t get_input_event(uint32_t now) {
   event_t event = EVENT_NONE;
 
@@ -27,7 +29,7 @@ event_t get_input_event(uint32_t now) {
 
   // collect pir events
   if (event == EVENT_NONE) {
-    PirState pir = pir_poll(now);
+    pir = pir_poll(now);
     if (pir == PIRST_FREE_NOW) {
       //gpio_put(LED_GREEN_PIN, false);
       event = EVENT_FREE;
@@ -40,29 +42,3 @@ event_t get_input_event(uint32_t now) {
 
   return event;
 }
-
-/*event_t get_time_event(uint32_t now, tim_t *tloc) {
-  static uint32_t tTim = 0;
-  event_t event = EVENT_NONE;
-
-  if ((now -tTim) >= TIME_POLLING_PERIOD) {
-    int8_t h, m;
-
-    // get utc time from rtc module
-    ds3231_get_time(&h, &m, &tloc->s);
-
-    // calculate local time
-    h = utc2loc(h, tloc->z);
-
-    // check for minute event
-    if ((m != tloc->m) || (h != tloc->h))
-      event = EVENT_TIME;
-
-    // save it for the next time
-    tloc->h = h;
-    tloc->m = m;
-    tTim = now;
-  }
-
-  return event;
-}*/
