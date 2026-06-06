@@ -1,0 +1,12 @@
+- [x] test kwaklock board
+- [x] drivers
+    - [x] pir input (button with long timeouts)
+    - [x] light (rgb led strip 11 pixels)
+    - [x] environment sensor (BME280)
+- [ ] features
+    - [x] light on command
+    - [x] light auto off
+    - [x] pir to status
+    - [x] light to status
+    - [x] environment to status
+    - [ ] better proportional light (sunrise/sunset)
