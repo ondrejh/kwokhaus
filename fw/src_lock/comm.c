@@ -165,7 +165,7 @@ int comm_parse(uint8_t *buff, int len, int max, event_t *event) {
         break;
     }
 
-    if (nlen != 0)
+    if ((nlen != 0) || (*event != EVENT_NONE))
       break;
   }
   return nlen;
