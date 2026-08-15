@@ -5,3 +5,5 @@ trigger/.history
 motor/.history
 motor/motor-backups
 *.bak
+motor/_autosave*
+motor/~motor*
