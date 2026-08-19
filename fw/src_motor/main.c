@@ -125,10 +125,14 @@ int main() {
   uint16_t voltage = 0;
 
   uint8_t motor_status = 0;
+  uint8_t motor_status_last = 0;
+  uint8_t motor_status_stable = 0;
   uint32_t motor_running_t = 0;
   uint32_t motor_current_t = 0;
 
   uint32_t tLastTx = 0;
+  uint32_t tStatusChange = 0;
+  bool forceStatus = false;
 
   while (true) {
     int32_t now = millis();
@@ -151,8 +155,18 @@ int main() {
       }
     }
 
-    if ((!comm_tx_busy()) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
+    if (motor_status != motor_status_last) {
+      motor_status_last = motor_status;
+      tStatusChange = now;
+    } else if ((motor_status_last != motor_status_stable) && ((now - tStatusChange) >= STATUS_CHANGE_TIMEOUT)) {
+      motor_status_stable = motor_status_last;
+      if (motor_status_stable & MOTOR_IS_END)
+        forceStatus = true;
+    }
+
+    if ((!comm_tx_busy()) && (forceStatus || ((now - tLastTx) > STATUS_REPEAT_PERIOD))) {
       tLastTx = now;
+      forceStatus = false;
       comrx = sprint_status(comm_buff, COMM_BUFLEN);
       comm_write(comm_buff, comrx);
       printf("TX: %s\n", comm_buff);

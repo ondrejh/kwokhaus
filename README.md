@@ -5,7 +5,9 @@ Attempt on some eggish automation.
 # ToDo
 
 - [x] remote controlled kwakhaus lock (status, unlock)
-- [ ] kwokhaus door motor controll
+- [x] kwokhaus door motor controll
+  - [x] update door status when changed
+  - [ ] light support (light ON/OFF, status)
 
 ---
 
