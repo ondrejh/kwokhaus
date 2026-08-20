@@ -72,22 +72,27 @@ void init(void) {
   // 1. nastaveni pwm pinu
   gpio_set_function(PWM_L_PIN, GPIO_FUNC_PWM);
   gpio_set_function(PWM_R_PIN, GPIO_FUNC_PWM);
+  gpio_set_function(LIGHT_PIN, GPIO_FUNC_PWM);
 
   // 2. zjisti bloky (slices) pwm
   uint sliceL = pwm_gpio_to_slice_num(PWM_L_PIN);
   uint sliceR = pwm_gpio_to_slice_num(PWM_R_PIN);
+  uint sliceLight = pwm_gpio_to_slice_num(LIGHT_PIN);
 
   // 3. nastaveni periody
   pwm_set_wrap(sliceL, PWM_PERIOD);
   pwm_set_wrap(sliceR, PWM_PERIOD);
+  pwm_set_wrap(sliceLight, PWM_PERIOD);
 
   // 4. nastaveni stridy (Duty Cycle) ~ 0
   pwm_set_gpio_level(PWM_L_PIN, 0);
   pwm_set_gpio_level(PWM_R_PIN, 0);
+  pwm_set_gpio_level(LIGHT_PIN, 0);
 
   // 5. spusteni PWM bloku
   pwm_set_enabled(sliceL, true);
   pwm_set_enabled(sliceR, true);
+  pwm_set_enabled(sliceLight, true);
 
   // initialize ADC
   adc_init();
@@ -139,6 +144,12 @@ int main() {
   uint32_t tLastTx = 0;
   uint32_t tStatusChange = 0;
 
+  uint32_t tLight = 0;
+  uint32_t lightPwm = 0;
+  uint32_t lightDime = LIGHT_DIMMING;
+  uint32_t tLightOff = 0;
+  uint32_t tLightOn = 0;
+
   while (true) {
     int32_t now = millis();
     event_t event = EVENT_NONE;
@@ -178,24 +189,32 @@ int main() {
     }
 
     // button polling and event generation
-    button_poll(&btnL, now);
-    button_poll(&btnR, now);
-    button_poll(&btnLight, now);
     if (event == EVENT_NONE) {
+      button_poll(&btnL, now);
+      button_poll(&btnR, now);
+      button_poll(&btnLight, now);
       event = get_button_event(btnL.st, btnR.st, btnLight.st, now);
     }
 
     if (event == EVENT_CMD_LIGHT_ON) {
       printf("EVENT: LIGHT ON\n");
       light = true;
+      lightDime = LIGHT_DIMMING;
+      tLightOff = 0; // switch off automatic switching off, clear?
     }
     if (event == EVENT_CMD_LIGHT_OFF) {
       printf("EVENT: LIGHT OFF\n");
       light = false;
+      lightDime = LIGHT_DIMMING;
     }
     if (event == EVENT_BTN_LIGHT) {
       printf("EVENT: LIGHT BUTTON\n");
       light = !light;
+      lightDime = LIGHT_DIMMING_BTN;
+      if (light) {
+        tLightOn = now;
+        tLightOff = LIGHT_AUTO_OFF;
+      }
     }
 
     if ((motor_status & MOTOR_RUNNING) == 0) {
@@ -308,9 +327,44 @@ int main() {
           printf("MOTOR IS DOWN\n");
         }
         motor_status &= ~MOTOR_RUNNING;
+
+        // start light timer if light is on
+        if (light) {
+          tLightOn = now;
+          tLightOff = LIGHT_DOOR_AUTO_OFF;
+          lightDime = LIGHT_DIMMING; // slow dimming
+        }
       }
     } else {
       motor_current_t = now;
+    }
+
+    // automatic light off
+    if (light && (tLightOff != 0) && ((now - tLightOn) > tLightOff)) {
+      light = false;
+    }
+
+    // set light output according to light status
+    if ((now - tLight) > 40) {
+      tLight = now;
+      if (light) {
+        if (lightPwm < pwm) {
+          lightPwm += lightDime;
+          if (lightPwm > pwm)
+            lightPwm = pwm;
+        }
+      }
+      else {
+        if (lightPwm > 0) {
+          if (lightPwm > lightDime) {
+            lightPwm -= lightDime;
+          }
+          else {
+            lightPwm = 0;
+          }
+        }
+      }
+      pwm_set_gpio_level(LIGHT_PIN, lightPwm);
     }
 
     // led status
@@ -333,9 +387,6 @@ int main() {
       }
       b = light?0x08:0;
       put_pixel(urgb_u32(r,g,b));
-
-      // set light output according to light status
-      gpio_put(LIGHT_PIN, light);
     }
   }
 }

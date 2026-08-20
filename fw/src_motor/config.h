@@ -69,4 +69,10 @@
 #define MOTOR_CURRENT_TIMEOUT 200 // ms (stop motor if it runs without current - end switch is reached
 #define CURRENT_MIN 0x150 // no current adc value > 0x100, but we want to be safe
 
+#define LIGHT_DIMMING 10
+#define LIGHT_DIMMING_BTN 1000
+
+#define LIGHT_AUTO_OFF 120000 // 2 min
+#define LIGHT_DOOR_AUTO_OFF 60 * 5 * 1000 // 5 min
+
 #endif // __CONFIG_H__
