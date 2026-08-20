@@ -59,6 +59,9 @@ void init(void) {
   gpio_init(PWM_L_PIN);
   gpio_set_dir(PWM_L_PIN, GPIO_OUT);
 
+  gpio_init(LIGHT_PIN);
+  gpio_set_dir(LIGHT_PIN, GPIO_OUT);
+
   // Initialize nvdata (load configuration)
   load_config(&config);
 
@@ -100,19 +103,22 @@ void init(void) {
 uint8_t comm_buff[COMM_BUFLEN];
 
 GateState gate = GATE_UNKNOWN;
+bool forceStatus = false;
+bool light = false;
 
 int main() {
   stdio_init_all();         // Inicializace USB CDC
 
   init();
 
-  bool led = false, trig = false;
+  bool led = false;//, trig = false;
   int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0, tAdc = 0;
   uint8_t r = 0x00, g = 0x00, b = 0x00;
 
-  btn_ctx_t btnL, btnR;
+  btn_ctx_t btnL, btnR, btnLight;
   button_init(&btnL, BUTTON_L_PIN);
   button_init(&btnR, BUTTON_R_PIN);
+  button_init(&btnLight, BUTTON_LIGHT_PIN);
 
   comm_init();
 
@@ -132,7 +138,6 @@ int main() {
 
   uint32_t tLastTx = 0;
   uint32_t tStatusChange = 0;
-  bool forceStatus = false;
 
   while (true) {
     int32_t now = millis();
@@ -158,9 +163,9 @@ int main() {
     if (motor_status != motor_status_last) {
       motor_status_last = motor_status;
       tStatusChange = now;
-    } else if ((motor_status_last != motor_status_stable) && ((now - tStatusChange) >= STATUS_CHANGE_TIMEOUT)) {
+    } else if ((motor_status_last != motor_status_stable) && ((now - tStatusChange) > STATUS_CHANGE_TIMEOUT)) {
       motor_status_stable = motor_status_last;
-      if (motor_status_stable & MOTOR_IS_END)
+      if ((motor_status_stable & MOTOR_IS_END) && ((now - tLastTx) > STATUS_CHANGE_TIMEOUT))
         forceStatus = true;
     }
 
@@ -172,12 +177,25 @@ int main() {
       printf("TX: %s\n", comm_buff);
     }
 
-
     // button polling and event generation
     button_poll(&btnL, now);
     button_poll(&btnR, now);
+    button_poll(&btnLight, now);
     if (event == EVENT_NONE) {
-      event = get_button_event(btnL.st, btnR.st, now);
+      event = get_button_event(btnL.st, btnR.st, btnLight.st, now);
+    }
+
+    if (event == EVENT_CMD_LIGHT_ON) {
+      printf("EVENT: LIGHT ON\n");
+      light = true;
+    }
+    if (event == EVENT_CMD_LIGHT_OFF) {
+      printf("EVENT: LIGHT OFF\n");
+      light = false;
+    }
+    if (event == EVENT_BTN_LIGHT) {
+      printf("EVENT: LIGHT BUTTON\n");
+      light = !light;
     }
 
     if ((motor_status & MOTOR_RUNNING) == 0) {
@@ -250,8 +268,8 @@ int main() {
       pwm_set_gpio_level(PWM_L_PIN, pwm);
     }
     else {
-      gpio_put(PWM_L_PIN, false);
-      gpio_put(PWM_R_PIN, false);
+      gpio_put(ENABLE_L_PIN, false);
+      gpio_put(ENABLE_R_PIN, false);
       pwm_set_gpio_level(PWM_R_PIN, 0);
       pwm_set_gpio_level(PWM_L_PIN, 0);
     }
@@ -313,7 +331,11 @@ int main() {
       else {
         r = g = 0;
       }
+      b = light?0x08:0;
       put_pixel(urgb_u32(r,g,b));
+
+      // set light output according to light status
+      gpio_put(LIGHT_PIN, light);
     }
   }
 }

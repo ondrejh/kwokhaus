@@ -19,9 +19,21 @@ typedef struct {
   uint8_t buff[UART_BUFFLEN];
 } buff_t;
 
+// commands
+const char *cmd_open = "OPEN";
+const int cmd_open_len = 4;
+const char *cmd_close = "CLOSE";
+const int cmd_close_len = 5;
+const char *cmd_light_on = "LON";
+const int cmd_light_on_len = 3;
+const char *cmd_light_off = "LOFF";
+const int cmd_light_off_len = 4;
+
 // collect all the states needed to export
 //extern tim_t tloc;
 extern GateState gate;
+extern bool light;
+extern bool forceStatus;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
 buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
@@ -116,7 +128,9 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
 // print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
   int len = snprintf(buff, max, "%s: ", DEV_NAME);
-  len += snprintf(&buff[len], max - len, "%s", gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" : "UNKNOWN"));
+  len += snprintf(&buff[len], max - len, "%s %s",
+    gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" : "UNKNOWN"),
+    light?"LON":"LOFF");
   return len;
 }
 
@@ -138,24 +152,34 @@ int comm_parse(uint8_t *buff, int len, int max, event_t *event) {
 
   int nlen = 0;
   while(p < buff + max) {
-    uint8_t ch = *p++;
+    uint8_t ch = *p;
     switch (ch) {
       case '?': // get status
-        nlen = sprint_status(buff, max);
+        forceStatus = true;
+        //nlen = sprint_status(buff, max);
         break;
       case 'O': // open
         //printf("OPEN\n");
-        if (event != NULL)
+        if ((event != NULL) && (memcmp(p, cmd_open, cmd_open_len) == 0))
           *event = EVENT_CMD_OPEN;
         break;
       case 'C': // close
         //printf("CLOSE\n");
-        if (event != NULL)
+        if ((event != NULL) && (memcmp(p, cmd_close, cmd_close_len) == 0))
           *event = EVENT_CMD_CLOSE;
+        break;
+      case 'L': // light
+        if (event != NULL) {
+          if (memcmp(p, cmd_light_on, cmd_light_on_len) == 0)
+            *event = EVENT_CMD_LIGHT_ON;
+          if (memcmp(p, cmd_light_off, cmd_light_off_len) == 0)
+            *event = EVENT_CMD_LIGHT_OFF;
+        }
         break;
       default:
         break;
     }
+    p++;
 
     if ((nlen != 0) || (event != NULL && *event != EVENT_NONE))
       break;

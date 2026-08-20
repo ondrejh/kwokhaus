@@ -1,12 +1,14 @@
 #include "includes.h"
 
-event_t get_button_event(ButtonState btn_o, ButtonState btn_c, uint32_t now) {
+event_t get_button_event(ButtonState btn_o, ButtonState btn_c, ButtonState btn_l, uint32_t now) {
   event_t event = EVENT_NONE;
 
   if (btn_o == BTNST_PRESSED)
     event = EVENT_BTN_OPEN;
   else if (btn_c == BTNST_PRESSED)
     event = EVENT_BTN_CLOSE;
+  else if (btn_l == BTNST_PRESSED)
+    event = EVENT_BTN_LIGHT;
   return event;
 }
 

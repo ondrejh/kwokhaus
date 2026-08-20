@@ -13,6 +13,7 @@
 // pin configuration of first prototype
 #warning "First prototype pin configuration"
 
+#define BUTTON_LIGHT_PIN 11
 #define BUTTON_L_PIN 14
 #define BUTTON_R_PIN 15
 
@@ -21,15 +22,20 @@
 #define PWM_R_PIN 6
 #define PWM_L_PIN 5
 
+#define LIGHT_PIN 12
+
 #else // ifdef FIRST_PROTOTYPE
 
 #define BUTTON_L_PIN 9
 #define BUTTON_R_PIN 10
+#define BUTTON_LIGHT_PIN 11
 
 #define ENABLE_R_PIN 15
 #define ENABLE_L_PIN 14
 #define PWM_R_PIN 13
 #define PWM_L_PIN 12
+
+#define LIGHT_PIN 8
 
 #endif // else FIRST_PROTOTYPE
 

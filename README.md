@@ -7,7 +7,8 @@ Attempt on some eggish automation.
 - [x] remote controlled kwakhaus lock (status, unlock)
 - [x] kwokhaus door motor controll
   - [x] update door status when changed
-  - [ ] light support (light ON/OFF, status)
+  - [x] light support (light ON/OFF, status)
+  - [ ] automatic light off, dimming (pwm)
 
 ---
 
