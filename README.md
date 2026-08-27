@@ -8,9 +8,17 @@ Attempt on some eggish automation.
 - [x] kwokhaus door motor controll
   - [x] update door status when changed
   - [x] light support (light ON/OFF, status)
-  - [ ] automatic light off, dimming (pwm)
+  - [x] automatic light off, dimming (pwm)
+- [ ] deploy second door driver
+
 
 ---
+
+## Kwokhaus
+
+- door motor controll
+- remote connection with Meshtastic (encrypted LoRa)
+- Home Assistant integration
 
 ## Kwakhaus
 
