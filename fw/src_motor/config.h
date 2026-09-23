@@ -2,7 +2,17 @@
 #define __CONFIG_H__
 
 // Name will be used as comm identifier
-#define DEV_NAME "KWOK"
+// ToDo: move those into nvram section, create some configuration
+// Note: This way I have to build FW for the same HW twice, with
+// different comm id. I can imagine config system using USB/UART,
+// store data into the section not affected by FW.
+
+//#define DEV_NAME "KWOK"
+#define DEV_NAME "KMUT" // second door for (meat) broiler chicken
+//#define DEV_NAME "TEST"
+#define DEBUG
+
+// Status timing
 #define STATUS_REPEAT_PERIOD 30 * 60 * 1000
 #define STATUS_CHANGE_TIMEOUT 5 * 1000
 
@@ -66,8 +76,10 @@
 #define MOTOR_FORCE (MOTOR_FORCE_UP | MOTOR_FORCE_DOWN)
 
 #define MOTOR_SAFETY_TIMEOUT 30000 // ms (stop motor if it runs for too long without reaching end position)
-#define MOTOR_CURRENT_TIMEOUT 200 // ms (stop motor if it runs without current - end switch is reached
-#define CURRENT_MIN 0x150 // no current adc value > 0x100, but we want to be safe
+#define MOTOR_CURRENT_TIMEOUT 400 // ms (stop motor if it runs without current - end switch is reached
+#define MOTOR_CURRENT_OFFSET_TIMEOUT 100 // ms (calibrate current offset after motor start)
+#define CURRENT1_MIN 0x150 // ADC value (current threshold for motor 1)
+#define CURRENT2_MIN 0x040 // ADC value (current threshold for motor 2)
 
 #define LIGHT_DIMMING 10
 #define LIGHT_DIMMING_BTN 1000

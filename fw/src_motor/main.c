@@ -140,6 +140,9 @@ int main() {
   uint8_t motor_status_stable = 0;
   uint32_t motor_running_t = 0;
   uint32_t motor_current_t = 0;
+  uint16_t motor_current_offset[2] = {0, 0};
+  uint32_t motor_current_offset_t = 0;
+  bool motor_current_offset_calibrated = false;
 
   uint32_t tLastTx = 0;
   uint32_t tStatusChange = 0;
@@ -277,14 +280,14 @@ int main() {
     if (motor_status & (MOTOR_GO_UP | MOTOR_FORCE_UP)) {
       gpio_put(ENABLE_L_PIN, true);
       gpio_put(ENABLE_R_PIN, true);
-      pwm_set_gpio_level(PWM_R_PIN, pwm);
+      pwm_set_gpio_level(PWM_R_PIN, motor_current_offset_calibrated ? pwm : 0);
       pwm_set_gpio_level(PWM_L_PIN, 0);
     }
     else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
       gpio_put(ENABLE_L_PIN, true);
       gpio_put(ENABLE_R_PIN, true);
       pwm_set_gpio_level(PWM_R_PIN, 0);
-      pwm_set_gpio_level(PWM_L_PIN, pwm);
+      pwm_set_gpio_level(PWM_L_PIN, motor_current_offset_calibrated ? pwm : 0);
     }
     else {
       gpio_put(ENABLE_L_PIN, false);
@@ -300,11 +303,11 @@ int main() {
     }
 
 #ifdef DEBUG
-    if ((now - tAdc) > 200) {
+    if ((now - tAdc) > 20) {
       tAdc = now;
       printf("%04X %04X %04X\n", adc[0], adc[1], adc[2]);
-      printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
-      printf("Motor status: %x\n", motor_status);
+      //printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
+      //printf("Motor status: %x\n", motor_status);
     }
 #endif
 
@@ -312,31 +315,44 @@ int main() {
     if (motor_status & MOTOR_RUNNING) {
       motor_status &= ~MOTOR_IS_END;
       gate = GATE_UNKNOWN;
-      if ((adc[1] > CURRENT_MIN) || (adc[2] > CURRENT_MIN)) {
+      if (!motor_current_offset_calibrated) {
         motor_current_t = now;
+        if ((now - motor_current_offset_t) > MOTOR_CURRENT_OFFSET_TIMEOUT) {
+          motor_current_offset[0] = adc[1];
+          motor_current_offset[1] = adc[2];
+          motor_current_offset_calibrated = true;
+          printf("MOTOR CURRENT OFFSET CALIBRATED: %04X %04X\n", motor_current_offset[0], motor_current_offset[1]);
+        }
       }
-      else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
-        if (motor_status & MOTOR_GO_UP) {
-          motor_status |= MOTOR_IS_UP;
-          gate = GATE_OPEN;
-          printf("MOTOR IS UP\n");
+      else {
+        if ((adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) || (adc[2] > (motor_current_offset[1] + CURRENT2_MIN))) {
+          motor_current_t = now;
         }
-        else if (motor_status & MOTOR_GO_DOWN) {
-          motor_status |= MOTOR_IS_DOWN;
-          gate = GATE_CLOSED;
-          printf("MOTOR IS DOWN\n");
-        }
-        motor_status &= ~MOTOR_RUNNING;
+        else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
+          if (motor_status & MOTOR_GO_UP) {
+            motor_status |= MOTOR_IS_UP;
+            gate = GATE_OPEN;
+            printf("MOTOR IS UP\n");
+          }
+          else if (motor_status & MOTOR_GO_DOWN) {
+            motor_status |= MOTOR_IS_DOWN;
+            gate = GATE_CLOSED;
+            printf("MOTOR IS DOWN\n");
+          }
+          motor_status &= ~MOTOR_RUNNING;
 
-        // start light timer if light is on
-        if (light) {
-          tLightOn = now;
-          tLightOff = LIGHT_DOOR_AUTO_OFF;
-          lightDime = LIGHT_DIMMING; // slow dimming
+          // start light timer if light is on
+          if (light) {
+            tLightOn = now;
+            tLightOff = LIGHT_DOOR_AUTO_OFF;
+            lightDime = LIGHT_DIMMING; // slow dimming
+          }
         }
       }
     } else {
       motor_current_t = now;
+      motor_current_offset_t = now;
+      motor_current_offset_calibrated = false;
     }
 
     // automatic light off

@@ -1,3 +1,4 @@
 build
 src/*.swp
 src_key/secrets.h
+.vscode
