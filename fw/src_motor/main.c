@@ -108,7 +108,6 @@ void init(void) {
 uint8_t comm_buff[COMM_BUFLEN];
 
 GateState gate = GATE_UNKNOWN;
-bool forceStatus = false;
 bool light = false;
 
 int main() {
@@ -162,17 +161,7 @@ int main() {
     if (comrx) {
       comm_buff[comrx] = '\0';
       printf("Rx: %.*s\n", COMM_BUFLEN, comm_buff);
-      comrx = comm_parse(comm_buff, comrx, COMM_BUFLEN, &event);
-      if (comrx) {
-        comm_buff[comrx] = '\0';
-        if (!comm_tx_busy()) {
-          tLastTx = now;
-          comm_write(comm_buff, comrx);
-          printf("TX: %s\n", comm_buff);
-        }
-        else
-          printf("TX BUSY\n");
-      }
+      comm_parse(comm_buff, comrx, COMM_BUFLEN);
     }
 
     if (motor_status != motor_status_last) {
@@ -181,38 +170,48 @@ int main() {
     } else if ((motor_status_last != motor_status_stable) && ((now - tStatusChange) > STATUS_CHANGE_TIMEOUT)) {
       motor_status_stable = motor_status_last;
       if ((motor_status_stable & MOTOR_IS_END) && ((now - tLastTx) > STATUS_CHANGE_TIMEOUT))
-        forceStatus = true;
+        event_queue_push(EVENT_STATUS);
     }
 
-    if ((!comm_tx_busy()) && (forceStatus || ((now - tLastTx) > STATUS_REPEAT_PERIOD))) {
+    // button polling and event generation
+    button_poll(&btnL, now);
+    button_poll(&btnR, now);
+    button_poll(&btnLight, now);
+    queue_button_events(btnL.st, btnR.st, btnLight.st);
+
+    // event processing
+    event = event_queue_peek();
+    event_result_t event_result = EVENT_HANDLED;
+
+    if (event == EVENT_STATUS) {
+      if (comm_tx_busy()) {
+        event_result = EVENT_RETRY;
+      }
+      else {
+        tLastTx = now;
+        comrx = sprint_status(comm_buff, COMM_BUFLEN);
+        comm_write(comm_buff, comrx);
+        printf("TX: %s\n", comm_buff);
+      }
+    }
+
+    if ((!comm_tx_busy()) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
       tLastTx = now;
-      forceStatus = false;
       comrx = sprint_status(comm_buff, COMM_BUFLEN);
       comm_write(comm_buff, comrx);
       printf("TX: %s\n", comm_buff);
     }
 
-    // button polling and event generation
-    if (event == EVENT_NONE) {
-      button_poll(&btnL, now);
-      button_poll(&btnR, now);
-      button_poll(&btnLight, now);
-      event = get_button_event(btnL.st, btnR.st, btnLight.st, now);
-    }
-
     if (event == EVENT_CMD_LIGHT_ON) {
-      printf("EVENT: LIGHT ON\n");
       light = true;
       lightDime = LIGHT_DIMMING;
       tLightOff = 0; // switch off automatic switching off, clear?
     }
     if (event == EVENT_CMD_LIGHT_OFF) {
-      printf("EVENT: LIGHT OFF\n");
       light = false;
       lightDime = LIGHT_DIMMING;
     }
     if (event == EVENT_BTN_LIGHT) {
-      printf("EVENT: LIGHT BUTTON\n");
       light = !light;
       lightDime = LIGHT_DIMMING_BTN;
       if (light) {
@@ -221,38 +220,26 @@ int main() {
       }
     }
 
-    if ((motor_status & MOTOR_RUNNING) == 0) {
-      if (event == EVENT_CMD_OPEN) {
-        printf("EVENT: OPEN\n");
+    if ((event == EVENT_BTN_OPEN) || (event == EVENT_BTN_CLOSE)) {
+      if (motor_status & MOTOR_RUNNING) {
+        printf("MOTOR STOP\n");
+        motor_status &= ~MOTOR_RUNNING;
+      }
+      else if (event == EVENT_BTN_OPEN) {
         motor_status |= MOTOR_GO_UP;
         motor_running_t = now;
       }
-      else if (event == EVENT_CMD_CLOSE) {
-        printf("EVENT: CLOSE\n");
+      else {
         motor_status |= MOTOR_GO_DOWN;
         motor_running_t = now;
       }
     }
-
-    // start motor up/down
-    if (btnL.st == BTNST_PRESSED) {
-      if (motor_status & MOTOR_RUNNING) {
-        printf("MOTOR STOP\n");
-        motor_status &= ~MOTOR_RUNNING;
-      }
-      else {
-        printf("MOTOR UP\n");
+    else if ((motor_status & MOTOR_RUNNING) == 0) {
+      if (event == EVENT_CMD_OPEN) {
         motor_status |= MOTOR_GO_UP;
         motor_running_t = now;
       }
-    }
-    else if (btnR.st == BTNST_PRESSED) {
-      if (motor_status & MOTOR_RUNNING) {
-        printf("MOTOR STOP\n");
-        motor_status &= ~MOTOR_RUNNING;
-      }
-      else {
-        printf("MOTOR DOWN\n");
+      else if (event == EVENT_CMD_CLOSE) {
         motor_status |= MOTOR_GO_DOWN;
         motor_running_t = now;
       }
@@ -342,12 +329,12 @@ int main() {
           if (motor_status & MOTOR_GO_UP) {
             motor_status |= MOTOR_IS_UP;
             gate = GATE_OPEN;
-            printf("MOTOR IS UP\n");
+            event_queue_push(EVENT_MOTOR_IS_UP);
           }
           else if (motor_status & MOTOR_GO_DOWN) {
             motor_status |= MOTOR_IS_DOWN;
             gate = GATE_CLOSED;
-            printf("MOTOR IS DOWN\n");
+            event_queue_push(EVENT_MOTOR_IS_DOWN);
           }
           motor_status &= ~MOTOR_RUNNING;
 
@@ -414,5 +401,11 @@ int main() {
       b = light?0x08:0;
       put_pixel(urgb_u32(r,g,b));
     }
+
+    if (event_result == EVENT_HANDLED) {
+      event_queue_pop();
+      event_print(event);
+    }
+
   }
 }

@@ -33,7 +33,6 @@ const int cmd_light_off_len = 4;
 //extern tim_t tloc;
 extern GateState gate;
 extern bool light;
-extern bool forceStatus;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
 buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
@@ -134,10 +133,10 @@ int sprint_status(uint8_t *buff, int max) {
   return len;
 }
 
-// parse input data, use it, maybe create output (same buffer)
-int comm_parse(uint8_t *buff, int len, int max, event_t *event) {
+// parse input data and enqueue events
+void comm_parse(uint8_t *buff, int len, int max) {
   if ((len <= 0) || (len >= max))
-    return 0;
+    return;
 
   buff[max-1] = '\0'; // just in case
 
@@ -146,45 +145,37 @@ int comm_parse(uint8_t *buff, int len, int max, event_t *event) {
   snprintf(name_plus, 16, ": %s", DEV_NAME);
   uint8_t *p = strstr(buff, name_plus);
   if (p == NULL) // if not found bye
-    return 0;
+    return;
   // skip name
   p += strlen(name_plus);
 
-  int nlen = 0;
   while(p < buff + max) {
     uint8_t ch = *p;
     switch (ch) {
       case '?': // get status
-        forceStatus = true;
-        //nlen = sprint_status(buff, max);
+        event_queue_push(EVENT_STATUS);
         break;
       case 'O': // open
         //printf("OPEN\n");
-        if ((event != NULL) && (memcmp(p, cmd_open, cmd_open_len) == 0))
-          *event = EVENT_CMD_OPEN;
+        if (memcmp(p, cmd_open, cmd_open_len) == 0)
+          event_queue_push(EVENT_CMD_OPEN);
         break;
       case 'C': // close
         //printf("CLOSE\n");
-        if ((event != NULL) && (memcmp(p, cmd_close, cmd_close_len) == 0))
-          *event = EVENT_CMD_CLOSE;
+        if (memcmp(p, cmd_close, cmd_close_len) == 0)
+          event_queue_push(EVENT_CMD_CLOSE);
         break;
       case 'L': // light
-        if (event != NULL) {
-          if (memcmp(p, cmd_light_on, cmd_light_on_len) == 0)
-            *event = EVENT_CMD_LIGHT_ON;
-          if (memcmp(p, cmd_light_off, cmd_light_off_len) == 0)
-            *event = EVENT_CMD_LIGHT_OFF;
-        }
+        if (memcmp(p, cmd_light_on, cmd_light_on_len) == 0)
+          event_queue_push(EVENT_CMD_LIGHT_ON);
+        else if (memcmp(p, cmd_light_off, cmd_light_off_len) == 0)
+          event_queue_push(EVENT_CMD_LIGHT_OFF);
         break;
       default:
         break;
     }
     p++;
-
-    if ((nlen != 0) || (event != NULL && *event != EVENT_NONE))
-      break;
   }
-  return nlen;
 }
 
 // is it printable character?
