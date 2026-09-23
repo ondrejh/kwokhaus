@@ -9,6 +9,7 @@
 #include <ctype.h>
 
 #include "pico/stdlib.h"
+#include "pico/rand.h"
 
 #include "hardware/adc.h"
 #include "hardware/pwm.h"

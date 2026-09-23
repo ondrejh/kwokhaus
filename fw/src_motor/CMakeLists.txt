@@ -32,6 +32,7 @@ pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/../ext/pico-e
 # add pico_stdlib library which aggregates commonly used features
 target_link_libraries(${PROJECT_NAME}
   pico_stdlib
+  pico_rand
   hardware_pio
   hardware_uart
   hardware_adc

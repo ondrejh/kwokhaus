@@ -144,7 +144,11 @@ int main() {
   bool motor_current_measured = false;
 
   uint32_t tLastTx = 0;
+  bool status_sent = false;
   bool light_last = false;
+  uint32_t status_change_t = millis();
+  bool status_change_pending = true;
+  uint32_t status_change_timeout = 1000 + (get_rand_32() % STATUS_CHANGE_TIMEOUT);
 
   uint32_t tLight = 0;
   uint32_t lightPwm = 0;
@@ -163,13 +167,18 @@ int main() {
       comm_parse(comm_buff, comrx, COMM_BUFLEN);
     }
 
-    if (motor_status != motor_status_last) {
+    if ((motor_status != motor_status_last) ||
+        (light != light_last)) {
       motor_status_last = motor_status;
-      event_queue_push(EVENT_STATUS);
-    }
-    if (light != light_last) {
       light_last = light;
-      event_queue_push(EVENT_STATUS);
+      status_change_t = now;
+      status_change_pending = true;
+      status_change_timeout = STATUS_CHANGE_TIMEOUT;
+    }
+    else if (status_change_pending &&
+             ((now - status_change_t) >= status_change_timeout)) {
+      if (event_queue_push(EVENT_STATUS) || event_queue_contains(EVENT_STATUS))
+        status_change_pending = false;
     }
 
     // button polling and event generation
@@ -186,11 +195,13 @@ int main() {
       event_queue_push(EVENT_STATUS);
 
     if (event == EVENT_STATUS) {
-      if (comm_tx_busy() || ((now - tLastTx) < STATUS_CHANGE_TIMEOUT)) {
+      if (comm_tx_busy() ||
+          (status_sent && ((now - tLastTx) < STATUS_CHANGE_TIMEOUT))) {
         event_result = EVENT_RETRY;
       }
       else {
         tLastTx = now;
+        status_sent = true;
         comrx = sprint_status(comm_buff, COMM_BUFLEN);
         comm_write(comm_buff, comrx);
         printf("TX: %s\n", comm_buff);
