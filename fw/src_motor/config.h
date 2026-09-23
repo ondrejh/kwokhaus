@@ -7,10 +7,10 @@
 // different comm id. I can imagine config system using USB/UART,
 // store data into the section not affected by FW.
 
-//#define DEV_NAME "KWOK"
-#define DEV_NAME "KMUT" // second door for (meat) broiler chicken
+#define DEV_NAME "KWOK"
+//#define DEV_NAME "KMUT" // second door for (meat) broiler chicken
 //#define DEV_NAME "TEST"
-#define DEBUG
+//#define DEBUG
 
 // Status timing
 #define STATUS_REPEAT_PERIOD 30 * 60 * 1000
