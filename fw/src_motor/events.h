@@ -31,6 +31,7 @@ typedef enum {
 #define EVENT_QUEUE_SIZE 8
 
 bool event_queue_push(event_t event);
+bool event_queue_contains(event_t event);
 event_t event_queue_peek(void);
 event_t event_queue_pop(void);
 void event_print(event_t event);

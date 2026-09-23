@@ -136,7 +136,6 @@ int main() {
 
   uint8_t motor_status = 0;
   uint8_t motor_status_last = 0;
-  uint8_t motor_status_stable = 0;
   uint32_t motor_running_t = 0;
   uint32_t motor_current_t = 0;
   int32_t motor_current_offset[2] = {0, 0};
@@ -145,7 +144,7 @@ int main() {
   bool motor_current_measured = false;
 
   uint32_t tLastTx = 0;
-  uint32_t tStatusChange = 0;
+  bool light_last = false;
 
   uint32_t tLight = 0;
   uint32_t lightPwm = 0;
@@ -166,11 +165,11 @@ int main() {
 
     if (motor_status != motor_status_last) {
       motor_status_last = motor_status;
-      tStatusChange = now;
-    } else if ((motor_status_last != motor_status_stable) && ((now - tStatusChange) > STATUS_CHANGE_TIMEOUT)) {
-      motor_status_stable = motor_status_last;
-      if ((motor_status_stable & MOTOR_IS_END) && ((now - tLastTx) > STATUS_CHANGE_TIMEOUT))
-        event_queue_push(EVENT_STATUS);
+      event_queue_push(EVENT_STATUS);
+    }
+    if (light != light_last) {
+      light_last = light;
+      event_queue_push(EVENT_STATUS);
     }
 
     // button polling and event generation
@@ -183,8 +182,11 @@ int main() {
     event = event_queue_peek();
     event_result_t event_result = EVENT_HANDLED;
 
+    if ((now - tLastTx) > STATUS_REPEAT_PERIOD)
+      event_queue_push(EVENT_STATUS);
+
     if (event == EVENT_STATUS) {
-      if (comm_tx_busy()) {
+      if (comm_tx_busy() || ((now - tLastTx) < STATUS_CHANGE_TIMEOUT)) {
         event_result = EVENT_RETRY;
       }
       else {
@@ -193,13 +195,6 @@ int main() {
         comm_write(comm_buff, comrx);
         printf("TX: %s\n", comm_buff);
       }
-    }
-
-    if ((!comm_tx_busy()) && ((now - tLastTx) > STATUS_REPEAT_PERIOD)) {
-      tLastTx = now;
-      comrx = sprint_status(comm_buff, COMM_BUFLEN);
-      comm_write(comm_buff, comrx);
-      printf("TX: %s\n", comm_buff);
     }
 
     if (event == EVENT_CMD_LIGHT_ON) {

@@ -8,11 +8,22 @@ static uint8_t event_queue_count = 0;
 bool event_queue_push(event_t event) {
   if ((event == EVENT_NONE) || (event_queue_count >= EVENT_QUEUE_SIZE))
     return false;
+  if (event_queue_contains(event))
+    return false;
 
   event_queue[event_queue_tail] = event;
   event_queue_tail = (event_queue_tail + 1) % EVENT_QUEUE_SIZE;
   event_queue_count++;
   return true;
+}
+
+bool event_queue_contains(event_t event) {
+  for (uint8_t i = 0, index = event_queue_head; i < event_queue_count; i++) {
+    if (event_queue[index] == event)
+      return true;
+    index = (index + 1) % EVENT_QUEUE_SIZE;
+  }
+  return false;
 }
 
 event_t event_queue_peek(void) {
