@@ -2,15 +2,15 @@
 
 const uint16_t adc_vref = 3300; // 3.3V
 
-uint16_t adc2u(uint16_t adc) {
+uint16_t adc2u(int32_t adc) {
   uint32_t res = adc * adc_vref * 11 / (4096 * ADC_OVERSAMPLE) ;
   return res;
 }
 
-bool adc_poll(uint32_t now, uint16_t *adc) {
+bool adc_poll(uint32_t now, int32_t *adc) {
   static uint32_t tAdc = 0;
   static int cnt = 0;
-  static uint16_t a[3] = {0,0,0};
+  static int32_t a[3] = {0,0,0};
   if ((now - tAdc) >= ADC_POLL_PERIOD) {
     tAdc = now;
     adc_select_input(SENSE_VIN_ADC);
@@ -130,7 +130,7 @@ int main() {
   tDisp = millis();
 
   uint32_t cnt = 0;
-  uint16_t adc[3];
+  int32_t adc[3];
 
   uint32_t pwm = 0;
   uint16_t voltage = 0;
@@ -140,9 +140,10 @@ int main() {
   uint8_t motor_status_stable = 0;
   uint32_t motor_running_t = 0;
   uint32_t motor_current_t = 0;
-  uint16_t motor_current_offset[2] = {0, 0};
+  int32_t motor_current_offset[2] = {0, 0};
   uint32_t motor_current_offset_t = 0;
   bool motor_current_offset_calibrated = false;
+  bool motor_current_measured = false;
 
   uint32_t tLastTx = 0;
   uint32_t tStatusChange = 0;
@@ -305,7 +306,7 @@ int main() {
 #ifdef DEBUG
     if ((now - tAdc) > 20) {
       tAdc = now;
-      printf("%04X %04X %04X\n", adc[0], adc[1], adc[2]);
+      printf("%04X %04X %04X\n", (unsigned int)adc[0], (unsigned int)adc[1], (unsigned int)adc[2]);
       //printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
       //printf("Motor status: %x\n", motor_status);
     }
@@ -315,16 +316,25 @@ int main() {
     if (motor_status & MOTOR_RUNNING) {
       motor_status &= ~MOTOR_IS_END;
       gate = GATE_UNKNOWN;
-      if (!motor_current_offset_calibrated) {
+      // check if motor current is above threshold, if not, stop motor
+      if (!motor_current_offset_calibrated) { // calibrate motor current offset first
         motor_current_t = now;
         if ((now - motor_current_offset_t) > MOTOR_CURRENT_OFFSET_TIMEOUT) {
           motor_current_offset[0] = adc[1];
           motor_current_offset[1] = adc[2];
           motor_current_offset_calibrated = true;
-          printf("MOTOR CURRENT OFFSET CALIBRATED: %04X %04X\n", motor_current_offset[0], motor_current_offset[1]);
+          printf("MOTOR CURRENT OFFSET: %04X %04X\n", (unsigned int)motor_current_offset[0], (unsigned int)motor_current_offset[1]);
+          motor_current_offset_t = now;
+          motor_current_measured = false;
         }
       }
       else {
+        if (!motor_current_measured && ((now - motor_current_offset_t) > MOTOR_CURRENT_OFFSET_TIMEOUT)) {
+          int32_t current1 = (int32_t)adc[1] - motor_current_offset[0];
+          int32_t current2 = (int32_t)adc[2] - motor_current_offset[1];
+          printf("MOTOR CURRENT: %ld %ld\n", (long)current1, (long)current2);
+          motor_current_measured = true;
+        }
         if ((adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) || (adc[2] > (motor_current_offset[1] + CURRENT2_MIN))) {
           motor_current_t = now;
         }
@@ -341,7 +351,7 @@ int main() {
           }
           motor_status &= ~MOTOR_RUNNING;
 
-          // start light timer if light is on
+          // motor stopped - start light timer if light is on
           if (light) {
             tLightOn = now;
             tLightOff = LIGHT_DOOR_AUTO_OFF;
