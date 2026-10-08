@@ -146,12 +146,13 @@ int main() {
 
     if (event == EVENT_STATUS) {
       if (comm_tx_busy() ||
-          (status_sent && ((now - tLastTx) < STATUS_CHANGE_TIMEOUT))) {
+          (status_sent && ((now - tLastTx) < STATUS_REPEAT_PERIOD_MIN))) {
         event_result = EVENT_RETRY;
       }
       else {
         tLastTx = now;
         status_sent = true;
+        status_change_timeout = STATUS_CHANGE_TIMEOUT;
         comrx = sprint_status(comm_buff, COMM_BUFLEN);
         comm_write(comm_buff, comrx);
         printf("TX: %s\n", comm_buff);
