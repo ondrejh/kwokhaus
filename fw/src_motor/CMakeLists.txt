@@ -21,6 +21,8 @@ pico_sdk_init()
 # rest of your project
 add_executable(${PROJECT_NAME}
   main.c
+  adc.c
+  utils.c
   board.c
   comm.c
   events.c

@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 if [ ! -d /media/$USER/RPI-RP2 ]; then
   stty -F /dev/ttyACM0 1200
   sleep 5.0

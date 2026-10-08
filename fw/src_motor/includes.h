@@ -18,6 +18,8 @@
 #include "ws2812.h"
 
 #include "config.h"
+#include "adc.h"
+#include "utils.h"
 #include "nvdata.h"
 #include "board.h"
 #include "events.h"

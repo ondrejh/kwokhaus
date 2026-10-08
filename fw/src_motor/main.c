@@ -1,52 +1,5 @@
 #include "includes.h"
 
-const uint16_t adc_vref = 3300; // 3.3V
-
-uint16_t adc2u(int32_t adc) {
-  uint32_t res = adc * adc_vref * 11 / (4096 * ADC_OVERSAMPLE) ;
-  return res;
-}
-
-bool adc_poll(uint32_t now, int32_t *adc) {
-  static uint32_t tAdc = 0;
-  static int cnt = 0;
-  static int32_t a[3] = {0,0,0};
-  if ((now - tAdc) >= ADC_POLL_PERIOD) {
-    tAdc = now;
-    adc_select_input(SENSE_VIN_ADC);
-    a[0] += adc_read();
-    adc_select_input(SENSE_L_ADC);
-    a[1] += adc_read();
-    adc_select_input(SENSE_R_ADC);
-    a[2] += adc_read();
-    cnt ++;
-    if (cnt >= ADC_OVERSAMPLE) {
-      for (int i=0; i<3; i++) {
-        adc[i] = a[i];
-        a[i] = 0;
-      }
-      cnt = 0;
-      return true;
-    }
-  }
-  return false;
-}
-
-uint32_t v2pwm(uint16_t v) {
-  // 1. osetreni 0
-  if (v == 0) return 0;
-
-  // 2. pokud je napeti nizsi nebo rovno limitu, jedeme na 100 %
-  if (v <= VOLT_FULL_PWR) {
-    return (uint32_t)PWM_PERIOD;
-  }
-
-  // 3. vypocet pro vyssi napeti: PWM = PERIOD * (LIMIT / NAPETI)
-  // pouzivame uint64_t pro, aby nedoslo k preteceni
-  uint64_t calc = (uint64_t)PWM_PERIOD * VOLT_FULL_PWR;
-  return (uint32_t)(calc / v);
-}
-
 void init(void) {
   // Initialize outputs
   gpio_init(ENABLE_R_PIN);
@@ -66,7 +19,7 @@ void init(void) {
   load_config(&config);
 
   // Initialize communication
-  //comm_init();
+  comm_init();
 
   // initialize PWM
   // 1. nastaveni pwm pinu
@@ -95,10 +48,7 @@ void init(void) {
   pwm_set_enabled(sliceLight, true);
 
   // initialize ADC
-  adc_init();
-  adc_gpio_init(SENSE_VIN_PIN);
-  adc_gpio_init(SENSE_L_PIN);
-  adc_gpio_init(SENSE_R_PIN);
+  adc_module_init();
 
   // Initialize onboard NeoPixel
   ws2812_init(RGB_LED_PIN);
@@ -124,7 +74,7 @@ int main() {
   button_init(&btnR, BUTTON_R_PIN);
   button_init(&btnLight, BUTTON_LIGHT_PIN);
 
-  comm_init();
+  //comm_init();
 
   tDisp = millis();
 

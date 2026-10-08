@@ -14,7 +14,7 @@
 
 // Status timing
 #define STATUS_REPEAT_PERIOD 30 * 60 * 1000
-#define STATUS_CHANGE_TIMEOUT 5 * 1000
+#define STATUS_CHANGE_TIMEOUT 32 * 1000
 
 // GPIO
 //#define FIRST_PROTOTYPE
