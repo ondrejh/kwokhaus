@@ -2,3 +2,5 @@ build
 src/*.swp
 src_key/secrets.h
 .vscode
+compile_commands.json
+.cache
