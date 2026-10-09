@@ -56,6 +56,7 @@ void init(void) {
 
 #define COMM_BUFLEN 128
 uint8_t comm_buff[COMM_BUFLEN];
+uint8_t usb_comm_buff[COMM_BUFLEN];
 
 GateState gate = GATE_UNKNOWN;
 bool light = false;
@@ -110,6 +111,7 @@ int main() {
     int32_t now = millis();
     event_t event = EVENT_NONE;
 
+    // receive commands from UART
     int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
     if (comrx) {
       comm_buff[comrx] = '\0';
@@ -117,6 +119,15 @@ int main() {
       comm_parse(comm_buff, comrx, COMM_BUFLEN);
     }
 
+    // receive commands from USB
+    int usb_comrx = usb_comm_poll(now, 100, usb_comm_buff, COMM_BUFLEN);
+    if (usb_comrx) {
+      usb_comm_buff[usb_comrx] = '\0';
+      printf("USB Rx: %.*s\n", COMM_BUFLEN, usb_comm_buff);
+      comm_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN);
+    }
+
+    // detect status change and send status event if needed
     if ((motor_status != motor_status_last) ||
         (light != light_last)) {
       motor_status_last = motor_status;

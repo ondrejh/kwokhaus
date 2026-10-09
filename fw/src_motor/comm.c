@@ -124,6 +124,26 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
   return 0;
 }
 
+int usb_comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
+  static int bufp = 0;
+  static uint32_t trx = 0;
+  while (true) {
+    int c = getchar_timeout_us(0);
+    if (c == PICO_ERROR_TIMEOUT)
+      break;
+    if (bufp >= max)
+      bufp = max - 1;
+    rxbuf[bufp++] = c;
+    trx = now;
+  }
+  if ((bufp > 0) && ((now - trx) > tout)) {
+    int ret = bufp;
+    bufp = 0;
+    return ret;
+  }
+  return 0;
+}
+
 // print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
   int len = snprintf(buff, max, "%s: ", DEV_NAME);
