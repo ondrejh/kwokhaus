@@ -4,12 +4,8 @@ Attempt on some eggish automation.
 
 # ToDo
 
-- [x] remote controlled kwakhaus lock (status, unlock)
-- [x] kwokhaus door motor controll
-  - [x] update door status when changed
-  - [x] light support (light ON/OFF, status)
-  - [x] automatic light off, dimming (pwm)
-- [ ] deploy second door driver
+- [ ] remote setting
+- [ ] non volatile config (not hard coded)
 
 
 ---
