@@ -169,7 +169,10 @@ void comm_parse(uint8_t *buff, int len, int max) {
   // skip name
   p += strlen(name_plus);
 
-  while(p < buff + max) {
+  bool motor_cmd = false;
+  bool light_on_cmd = false;
+
+  while((p < buff + max) && (*p != '\0')) {
     uint8_t ch = *p;
     switch (ch) {
       case '?': // get status
@@ -177,17 +180,23 @@ void comm_parse(uint8_t *buff, int len, int max) {
         break;
       case 'O': // open
         //printf("OPEN\n");
-        if (memcmp(p, cmd_open, cmd_open_len) == 0)
+        if (memcmp(p, cmd_open, cmd_open_len) == 0) {
           event_queue_push(EVENT_CMD_OPEN);
+          motor_cmd = true;
+        }
         break;
       case 'C': // close
         //printf("CLOSE\n");
-        if (memcmp(p, cmd_close, cmd_close_len) == 0)
+        if (memcmp(p, cmd_close, cmd_close_len) == 0) {
           event_queue_push(EVENT_CMD_CLOSE);
+          motor_cmd = true;
+        }
         break;
       case 'L': // light
-        if (memcmp(p, cmd_light_on, cmd_light_on_len) == 0)
+        if (memcmp(p, cmd_light_on, cmd_light_on_len) == 0) {
           event_queue_push(EVENT_CMD_LIGHT_ON);
+          light_on_cmd = true;
+        }
         else if (memcmp(p, cmd_light_off, cmd_light_off_len) == 0)
           event_queue_push(EVENT_CMD_LIGHT_OFF);
         break;
@@ -196,6 +205,11 @@ void comm_parse(uint8_t *buff, int len, int max) {
     }
     p++;
   }
+
+  // light on together with open/close in one message -> keep light on
+  // (pushed last so it's processed after the motor command clears the hold)
+  if (motor_cmd && light_on_cmd)
+    event_queue_push(EVENT_CMD_LIGHT_HOLD);
 }
 
 // is it printable character?

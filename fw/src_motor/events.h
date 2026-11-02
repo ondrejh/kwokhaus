@@ -16,6 +16,7 @@ typedef enum {
 
   EVENT_CMD_LIGHT_ON,
   EVENT_CMD_LIGHT_OFF,
+  EVENT_CMD_LIGHT_HOLD, // LON sent together with OPEN/CLOSE
 
   EVENT_STATUS,
 

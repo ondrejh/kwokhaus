@@ -68,6 +68,9 @@ void event_print(event_t event) {
     case EVENT_CMD_LIGHT_OFF:
       printf("EVENT: COMMAND LIGHT OFF\n");
       break;
+    case EVENT_CMD_LIGHT_HOLD:
+      printf("EVENT: COMMAND LIGHT HOLD\n");
+      break;
     case EVENT_STATUS:
       printf("EVENT: STATUS\n");
       break;

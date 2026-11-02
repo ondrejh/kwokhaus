@@ -106,6 +106,7 @@ int main() {
   uint32_t lightDime = LIGHT_DIMMING;
   uint32_t tLightOff = 0;
   uint32_t tLightOn = 0;
+  bool lightHold = false; // don't start auto off timer after motor stops
 
   while (true) {
     int32_t now = millis();
@@ -178,15 +179,26 @@ int main() {
     if (event == EVENT_CMD_LIGHT_OFF) {
       light = false;
       lightDime = LIGHT_DIMMING;
+      lightHold = false;
+    }
+    if (event == EVENT_CMD_LIGHT_HOLD) {
+      lightHold = true;
+      tLightOff = 0;
     }
     if (event == EVENT_BTN_LIGHT) {
       light = !light;
+      lightHold = false;
       lightDime = LIGHT_DIMMING_BTN;
       if (light) {
         tLightOn = now;
         tLightOff = LIGHT_AUTO_OFF;
       }
     }
+
+    // any new motor command cancels light hold (re-set by EVENT_CMD_LIGHT_HOLD)
+    if ((event == EVENT_BTN_OPEN) || (event == EVENT_BTN_CLOSE) ||
+        (event == EVENT_CMD_OPEN) || (event == EVENT_CMD_CLOSE))
+      lightHold = false;
 
     if ((event == EVENT_BTN_OPEN) || (event == EVENT_BTN_CLOSE)) {
       if (motor_status & MOTOR_RUNNING) {
@@ -307,7 +319,7 @@ int main() {
           motor_status &= ~MOTOR_RUNNING;
 
           // motor stopped - start light timer if light is on
-          if (light) {
+          if (light && !lightHold) {
             tLightOn = now;
             tLightOff = LIGHT_DOOR_AUTO_OFF;
             lightDime = LIGHT_DIMMING; // slow dimming
