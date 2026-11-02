@@ -102,7 +102,7 @@ int main() {
   uint32_t status_change_timeout = 1000 + (get_rand_32() % STATUS_CHANGE_TIMEOUT);
 
   uint32_t tLight = 0;
-  uint32_t lightPwm = 0;
+  uint32_t lightLevel = 0; // linear ramp 0..PWM_PERIOD, mapped by light_curve()
   uint32_t lightDime = LIGHT_DIMMING;
   uint32_t tLightOff = 0;
   uint32_t tLightOn = 0;
@@ -329,23 +329,19 @@ int main() {
     if ((now - tLight) > 40) {
       tLight = now;
       if (light) {
-        if (lightPwm < pwm) {
-          lightPwm += lightDime;
-          if (lightPwm > pwm)
-            lightPwm = pwm;
+        if (lightLevel < PWM_PERIOD) {
+          lightLevel += lightDime;
+          if (lightLevel > PWM_PERIOD)
+            lightLevel = PWM_PERIOD;
         }
       }
       else {
-        if (lightPwm > 0) {
-          if (lightPwm > lightDime) {
-            lightPwm -= lightDime;
-          }
-          else {
-            lightPwm = 0;
-          }
-        }
+        if (lightLevel > lightDime)
+          lightLevel -= lightDime;
+        else
+          lightLevel = 0;
       }
-      pwm_set_gpio_level(LIGHT_PIN, lightPwm);
+      pwm_set_gpio_level(LIGHT_PIN, light_curve(lightLevel, pwm));
     }
 
     // led status
