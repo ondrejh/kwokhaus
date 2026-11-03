@@ -144,7 +144,7 @@ int usb_comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
 
 // print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
-  int len = snprintf(buff, max, "%s: ", DEV_NAME);
+  int len = snprintf(buff, max, "%s: ", config.name);
   GateState gate = motor_get_gate();
   len += snprintf(&buff[len], max - len, "%s %s",
     gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" :
@@ -161,8 +161,8 @@ void comm_parse(uint8_t *buff, int len, int max) {
   buff[max-1] = '\0'; // just in case
 
   // search for name including ": <name>" 
-  uint8_t name_plus[16];
-  snprintf(name_plus, 16, ": %s", DEV_NAME);
+  char name_plus[CONF_MAX_NAME + 3];
+  snprintf(name_plus, sizeof(name_plus), ": %s", config.name);
   uint8_t *p = strstr(buff, name_plus);
   if (p == NULL) // if not found bye
     return;
@@ -210,6 +210,75 @@ void comm_parse(uint8_t *buff, int len, int max) {
   // (pushed last so it's processed after the motor command clears the hold)
   if (motor_cmd && light_on_cmd)
     event_queue_push(EVENT_CMD_LIGHT_HOLD);
+}
+
+// print configuration (to USB stdio)
+static void print_config(void) {
+  printf("CFG: NAME=%s BRPER=%lu CNT=%lu\n", config.name,
+    (unsigned long)(config.brper / 1000), (unsigned long)config.cnt);
+}
+
+// parse one USB configuration command line
+// returns true when the line was a configuration command
+static bool usb_cmd_line(char *line, bool *changed) {
+  if (strcmp(line, "CFG?") == 0) {
+    print_config();
+    return true;
+  }
+  if (strncmp(line, "NAME=", 5) == 0) {
+    if (config_set_name(&config, &line[5])) {
+      *changed = true;
+      printf("CFG: NAME=%s\n", config.name);
+    }
+    else
+      printf("CFG: ERR name (1..%d chars, A-Z a-z 0-9 _ -)\n", CONF_MAX_NAME);
+    return true;
+  }
+  if (strncmp(line, "BRPER=", 6) == 0) {
+    char *end;
+    unsigned long v = strtoul(&line[6], &end, 10);
+    if ((end != &line[6]) && (*end == '\0') && config_set_brper(&config, v)) {
+      *changed = true;
+      printf("CFG: BRPER=%lu\n", (unsigned long)(config.brper / 1000));
+    }
+    else
+      printf("CFG: ERR brper (%d..%d s)\n", CONF_BRPER_MIN_S, CONF_BRPER_MAX_S);
+    return true;
+  }
+  return false;
+}
+
+// parse USB configuration commands (one per line): CFG?, NAME=<name>, BRPER=<s>
+// returns true when any line was a configuration command (buffer is kept untouched)
+// *changed is set when configuration was modified (needs to be saved)
+bool usb_cmd_parse(uint8_t *buff, int len, int max, bool *changed) {
+  if ((len <= 0) || (len >= max))
+    return false;
+  buff[len] = '\0';
+
+  // quick check
+  if ((strstr((char *)buff, "CFG?") == NULL) &&
+      (strstr((char *)buff, "NAME=") == NULL) &&
+      (strstr((char *)buff, "BRPER=") == NULL))
+    return false;
+
+  char tmp[len + 1];
+  memcpy(tmp, buff, len + 1);
+
+  bool handled = false;
+  char *save;
+  for (char *line = strtok_r(tmp, "\r\n", &save); line != NULL;
+       line = strtok_r(NULL, "\r\n", &save)) {
+    // trim spaces
+    while (*line == ' ')
+      line++;
+    char *e = line + strlen(line);
+    while ((e > line) && (e[-1] == ' '))
+      *--e = '\0';
+    if (usb_cmd_line(line, changed))
+      handled = true;
+  }
+  return handled;
 }
 
 // is it printable character?

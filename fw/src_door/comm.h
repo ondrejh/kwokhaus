@@ -9,6 +9,7 @@ bool comm_tx_busy(void);
 int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max);
 int usb_comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max);
 void comm_parse(uint8_t *buff, int len, int max);
+bool usb_cmd_parse(uint8_t *buff, int len, int max, bool *changed);
 int sprint_status(uint8_t *buff, int max);
 
 #endif // __COMM_H__

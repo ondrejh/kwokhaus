@@ -25,6 +25,9 @@ static uint32_t tLightOff = 0;
 static uint32_t tLightOn = 0;
 static bool lightHold = false; // don't start auto off timer after motor stops
 
+// configuration changed (save to flash when motor is idle)
+static bool config_dirty = false;
+
 void init(void) {
   // Initialize nvdata (load configuration)
   load_config(&config);
@@ -49,7 +52,18 @@ static void comm_receive(uint32_t now) {
   if (usb_comrx) {
     usb_comm_buff[usb_comrx] = '\0';
     printf("USB Rx: %.*s\n", COMM_BUFLEN, usb_comm_buff);
-    comm_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN);
+    // configuration commands are accepted from USB only
+    if (!usb_cmd_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN, &config_dirty))
+      comm_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN);
+  }
+}
+
+// save changed configuration (flash erase blocks interrupts ~50 ms, do it with motor stopped)
+static void config_update(void) {
+  if (config_dirty && (motor_get_pwm() == 0)) {
+    config_dirty = false;
+    if (save_config(&config))
+      printf("CFG: saved (cnt %lu)\n", (unsigned long)config.cnt);
   }
 }
 
@@ -70,7 +84,7 @@ static void status_update(uint32_t now) {
       status_change_pending = false;
   }
 
-  if ((now - tLastTx) > STATUS_REPEAT_PERIOD)
+  if ((now - tLastTx) > config.brper)
     event_queue_push(EVENT_STATUS);
 }
 
@@ -193,6 +207,7 @@ void main_task(void *param) {
     uint32_t now = millis();
 
     comm_receive(now);
+    config_update();
     status_update(now);
 
     // button polling and event generation

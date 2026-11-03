@@ -1,21 +1,22 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-// Name will be used as comm identifier
-// ToDo: move those into nvram section, create some configuration
-// Note: This way I have to build FW for the same HW twice, with
-// different comm id. I can imagine config system using USB/UART,
-// store data into the section not affected by FW.
-
+// Default configuration (used when no valid config is stored in flash).
+// Actual values are stored in nvdata (last flash sector, retained over FW update)
+// and can be changed over USB: CFG?, NAME=<name>, BRPER=<seconds>
 #define DEV_NAME "KWOK"
 //#define DEV_NAME "KMUT" // second door for (meat) broiler chicken
 //#define DEV_NAME "TEST"
 //#define DEBUG
 
 // Status timing
-#define STATUS_REPEAT_PERIOD (30 * 60 * 1000)
+#define STATUS_REPEAT_PERIOD (30 * 60 * 1000) // default, config.brper used
 #define STATUS_CHANGE_TIMEOUT (42 * 1000)
 #define STATUS_REPEAT_PERIOD_MIN (5 * 1000)
+
+// broadcast period limits for configuration [s]
+#define CONF_BRPER_MIN_S 10
+#define CONF_BRPER_MAX_S (24 * 60 * 60)
 
 // GPIO
 //#define FIRST_PROTOTYPE
