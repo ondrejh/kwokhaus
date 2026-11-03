@@ -21,6 +21,7 @@ typedef enum {
   GATE_OPENING,
   GATE_OPEN,
   GATE_CLOSING,
+  GATE_ERROR,
 } GateState;
 
 typedef struct btn_ctx_t {

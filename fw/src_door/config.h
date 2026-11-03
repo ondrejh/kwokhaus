@@ -75,10 +75,14 @@
 #define MOTOR_FORCE_UP (1<<4)
 #define MOTOR_FORCE_DOWN (1<<5)
 #define MOTOR_FORCE (MOTOR_FORCE_UP | MOTOR_FORCE_DOWN)
+#define MOTOR_ERROR (1<<6) // position probe failed (no current in either direction)
 
 #define MOTOR_SAFETY_TIMEOUT 30000 // ms (stop motor if it runs for too long without reaching end position)
 #define MOTOR_CURRENT_TIMEOUT 400 // ms (stop motor if it runs without current - end switch is reached
 #define MOTOR_CURRENT_OFFSET_TIMEOUT 100 // ms (calibrate current offset after motor start)
+#define MOTOR_PROBE_DELAY 5000 // ms (probe real gate position this long after reset)
+#define MOTOR_PROBE_TIME 500 // ms (max run time of each probe direction)
+#define MOTOR_PROBE_PAUSE 300 // ms (pause between probe moves)
 #define CURRENT1_MIN 0x150 // ADC value (current threshold for motor 1)
 #define CURRENT2_MIN 0x040 // ADC value (current threshold for motor 2)
 

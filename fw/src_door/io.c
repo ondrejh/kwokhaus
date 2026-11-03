@@ -30,6 +30,9 @@ static void led_update(uint32_t now) {
     r = (r == 0x10) ? 0 : 0x10;
     g = 0;
   }
+  else if (status & MOTOR_ERROR) {
+    r = g = (g == 0x10) ? 0 : 0x10;
+  }
   else if (status & MOTOR_IS_END) {
     g = (status & MOTOR_IS_UP) ? 0x10 : 0;
     r = (status & MOTOR_IS_DOWN) ? 0x10 : 0;

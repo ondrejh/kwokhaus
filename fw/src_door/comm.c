@@ -147,7 +147,8 @@ int sprint_status(uint8_t *buff, int max) {
   int len = snprintf(buff, max, "%s: ", DEV_NAME);
   GateState gate = motor_get_gate();
   len += snprintf(&buff[len], max - len, "%s %s",
-    gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" : "UNKNOWN"),
+    gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" :
+      (gate==GATE_ERROR? "ERROR" : "UNKNOWN")),
     light_is_on()?"LON":"LOFF");
   return len;
 }

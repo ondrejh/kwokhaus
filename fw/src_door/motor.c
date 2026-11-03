@@ -90,10 +90,89 @@ static bool motor_current_measured = false;
 static uint32_t tAdc = 0;
 #endif
 
+// gate position probe after reset:
+// wait, try to open - current means it was closed -> close it back,
+// no current -> try to close - current means it was open -> open it back,
+// no current in either direction -> error
+typedef enum {
+  PROBE_WAIT,       // waiting MOTOR_PROBE_DELAY after reset
+  PROBE_OPEN,       // trying to open
+  PROBE_OPEN_DONE,  // open try finished, pause before next move
+  PROBE_CLOSE,      // trying to close
+  PROBE_CLOSE_DONE, // close try finished, pause before next move
+  PROBE_DONE,
+} probe_t;
+
+static probe_t probe = PROBE_WAIT;
+static uint32_t probe_t0 = 0;
+static bool probe_current = false;
+
+static void motor_start(uint8_t dir, uint32_t now) {
+  status &= ~(MOTOR_RUNNING | MOTOR_ERROR);
+  status |= dir;
+  motor_running_t = now;
+  // new run, calibrate current offset again
+  motor_current_t = now;
+  motor_current_offset_t = now;
+  motor_current_offset_calibrated = false;
+}
+
+static void probe_abort(void) {
+  if ((probe == PROBE_OPEN) || (probe == PROBE_CLOSE))
+    status &= ~MOTOR_RUNNING;
+  if (probe != PROBE_DONE)
+    printf("MOTOR PROBE ABORTED\n");
+  probe = PROBE_DONE;
+}
+
+static void probe_update(uint32_t now) {
+  switch (probe) {
+    case PROBE_WAIT:
+      if (((now - probe_t0) >= MOTOR_PROBE_DELAY) && !(status & MOTOR_RUNNING)) {
+        printf("MOTOR PROBE: OPEN\n");
+        probe_current = false;
+        probe = PROBE_OPEN;
+        motor_start(MOTOR_GO_UP, now);
+      }
+      break;
+    case PROBE_OPEN_DONE:
+      if ((now - probe_t0) >= MOTOR_PROBE_PAUSE) {
+        if (probe_current) { // was closed (or in between), close it back
+          printf("MOTOR PROBE: CLOSE BACK\n");
+          probe = PROBE_DONE;
+        }
+        else { // no current, maybe it's open
+          printf("MOTOR PROBE: CLOSE\n");
+          probe_current = false;
+          probe = PROBE_CLOSE;
+        }
+        motor_start(MOTOR_GO_DOWN, now);
+      }
+      break;
+    case PROBE_CLOSE_DONE:
+      if ((now - probe_t0) >= MOTOR_PROBE_PAUSE) {
+        if (probe_current) { // was open, open it back
+          printf("MOTOR PROBE: OPEN BACK\n");
+          motor_start(MOTOR_GO_UP, now);
+        }
+        else { // no current in either direction
+          printf("MOTOR PROBE: ERROR\n");
+          status |= MOTOR_ERROR;
+          gate = GATE_ERROR;
+        }
+        probe = PROBE_DONE;
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 void motor_update(uint32_t now) {
   // process commands from main logic
   motor_cmd_t cmd;
   while (xQueueReceive(motor_cmd_queue, &cmd, 0) == pdTRUE) {
+    probe_abort(); // any command cancels position probe
     switch (cmd) {
       case MOTOR_CMD_OPEN_OR_STOP:
       case MOTOR_CMD_CLOSE_OR_STOP:
@@ -102,15 +181,13 @@ void motor_update(uint32_t now) {
           status &= ~MOTOR_RUNNING;
         }
         else {
-          status |= (cmd == MOTOR_CMD_OPEN_OR_STOP) ? MOTOR_GO_UP : MOTOR_GO_DOWN;
-          motor_running_t = now;
+          motor_start((cmd == MOTOR_CMD_OPEN_OR_STOP) ? MOTOR_GO_UP : MOTOR_GO_DOWN, now);
         }
         break;
       case MOTOR_CMD_OPEN:
       case MOTOR_CMD_CLOSE:
         if ((status & MOTOR_RUNNING) == 0) {
-          status |= (cmd == MOTOR_CMD_OPEN) ? MOTOR_GO_UP : MOTOR_GO_DOWN;
-          motor_running_t = now;
+          motor_start((cmd == MOTOR_CMD_OPEN) ? MOTOR_GO_UP : MOTOR_GO_DOWN, now);
         }
         break;
       case MOTOR_CMD_FORCE_UP:
@@ -124,6 +201,8 @@ void motor_update(uint32_t now) {
         break;
     }
   }
+
+  probe_update(now);
 
   // safety timeout
   if (status & MOTOR_RUNNING) {
@@ -184,7 +263,20 @@ void motor_update(uint32_t now) {
         printf("MOTOR CURRENT: %ld %ld\n", (long)current1, (long)current2);
         motor_current_measured = true;
       }
-      if ((adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) || (adc[2] > (motor_current_offset[1] + CURRENT2_MIN))) {
+      bool current = (adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) ||
+                     (adc[2] > (motor_current_offset[1] + CURRENT2_MIN));
+      if ((probe == PROBE_OPEN) || (probe == PROBE_CLOSE)) {
+        // position probe: stop on current or after probe time
+        if (current)
+          probe_current = true;
+        if (current || ((now - motor_current_offset_t) > MOTOR_PROBE_TIME)) {
+          printf("MOTOR PROBE: %s\n", current ? "CURRENT" : "NO CURRENT");
+          status &= ~MOTOR_RUNNING;
+          probe = (probe == PROBE_OPEN) ? PROBE_OPEN_DONE : PROBE_CLOSE_DONE;
+          probe_t0 = now;
+        }
+      }
+      else if (current) {
         motor_current_t = now;
       }
       else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
