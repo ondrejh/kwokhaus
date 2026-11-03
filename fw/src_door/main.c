@@ -60,10 +60,12 @@ static void comm_receive(uint32_t now) {
 
 // save changed configuration (flash erase blocks interrupts ~50 ms, do it with motor stopped)
 static void config_update(void) {
-  if (config_dirty && (motor_get_pwm() == 0)) {
+  if (config_dirty && !(motor_get_status() & MOTOR_RUNNING)) {
     config_dirty = false;
     if (save_config(&config))
       printf("CFG: saved (cnt %lu)\n", (unsigned long)config.cnt);
+    else
+      printf("CFG: save skipped (same as stored)\n");
   }
 }
 
