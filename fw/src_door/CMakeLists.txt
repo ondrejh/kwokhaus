@@ -10,6 +10,10 @@ set(PROJECT_NAME door)
 set(PICO_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/../ext/pico-sdk)
 include(pico_sdk_import.cmake)
 
+# FreeRTOS kernel (RP2040 port), must be included before project()
+set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_LIST_DIR}/../ext/FreeRTOS-Kernel)
+include(${FREERTOS_KERNEL_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
+
 # Set project name
 project(${PROJECT_NAME} C CXX ASM)
 set(CMAKE_C_STANDARD 11)
@@ -22,6 +26,9 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME}
   main.c
   adc.c
+  motor.c
+  light.c
+  io.c
   utils.c
   board.c
   comm.c
@@ -31,11 +38,14 @@ add_executable(${PROJECT_NAME}
   ws2812.pio
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/../ext/pico-examples/pio/ws2812/ws2812.pio)
 
 # add pico_stdlib library which aggregates commonly used features
 target_link_libraries(${PROJECT_NAME}
   pico_stdlib
+  FreeRTOS-Kernel-Heap4
   pico_rand
   hardware_pio
   hardware_uart

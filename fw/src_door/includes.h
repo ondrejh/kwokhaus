@@ -11,6 +11,10 @@
 #include "pico/stdlib.h"
 #include "pico/rand.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
 
@@ -22,6 +26,9 @@
 #include "utils.h"
 #include "nvdata.h"
 #include "board.h"
+#include "motor.h"
+#include "light.h"
+#include "io.h"
 #include "events.h"
 #include "comm.h"
 

@@ -5,19 +5,10 @@ static uint8_t event_queue_head = 0;
 static uint8_t event_queue_tail = 0;
 static uint8_t event_queue_count = 0;
 
-bool event_queue_push(event_t event) {
-  if ((event == EVENT_NONE) || (event_queue_count >= EVENT_QUEUE_SIZE))
-    return false;
-  if (event_queue_contains(event))
-    return false;
+// event queue is shared between tasks (main logic and motor task),
+// all accesses are guarded by a critical section
 
-  event_queue[event_queue_tail] = event;
-  event_queue_tail = (event_queue_tail + 1) % EVENT_QUEUE_SIZE;
-  event_queue_count++;
-  return true;
-}
-
-bool event_queue_contains(event_t event) {
+static bool event_queue_contains_unsafe(event_t event) {
   for (uint8_t i = 0, index = event_queue_head; i < event_queue_count; i++) {
     if (event_queue[index] == event)
       return true;
@@ -26,22 +17,45 @@ bool event_queue_contains(event_t event) {
   return false;
 }
 
-event_t event_queue_peek(void) {
-  if (event_queue_count == 0)
-    return EVENT_NONE;
+bool event_queue_push(event_t event) {
+  bool ret = false;
+  taskENTER_CRITICAL();
+  if ((event != EVENT_NONE) && (event_queue_count < EVENT_QUEUE_SIZE) &&
+      !event_queue_contains_unsafe(event)) {
+    event_queue[event_queue_tail] = event;
+    event_queue_tail = (event_queue_tail + 1) % EVENT_QUEUE_SIZE;
+    event_queue_count++;
+    ret = true;
+  }
+  taskEXIT_CRITICAL();
+  return ret;
+}
 
-  return event_queue[event_queue_head];
+bool event_queue_contains(event_t event) {
+  taskENTER_CRITICAL();
+  bool ret = event_queue_contains_unsafe(event);
+  taskEXIT_CRITICAL();
+  return ret;
+}
+
+event_t event_queue_peek(void) {
+  event_t event = EVENT_NONE;
+  taskENTER_CRITICAL();
+  if (event_queue_count != 0)
+    event = event_queue[event_queue_head];
+  taskEXIT_CRITICAL();
+  return event;
 }
 
 event_t event_queue_pop(void) {
-  event_t event;
-
-  if (event_queue_count == 0)
-    return EVENT_NONE;
-
-  event = event_queue[event_queue_head];
-  event_queue_head = (event_queue_head + 1) % EVENT_QUEUE_SIZE;
-  event_queue_count--;
+  event_t event = EVENT_NONE;
+  taskENTER_CRITICAL();
+  if (event_queue_count != 0) {
+    event = event_queue[event_queue_head];
+    event_queue_head = (event_queue_head + 1) % EVENT_QUEUE_SIZE;
+    event_queue_count--;
+  }
+  taskEXIT_CRITICAL();
   return event;
 }
 

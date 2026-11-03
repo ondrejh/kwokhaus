@@ -1,191 +1,112 @@
 #include "includes.h"
 
+#define MAIN_TASK_STACK 1024
+#define MAIN_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
+#define IO_TASK_STACK 1024
+#define IO_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
+
+#define COMM_BUFLEN 128
+static uint8_t comm_buff[COMM_BUFLEN];
+static uint8_t usb_comm_buff[COMM_BUFLEN];
+
+// status reporting state
+static uint8_t motor_status_last = 0;
+static bool light_last = false;
+static uint32_t tLastTx = 0;
+static bool status_sent = false;
+static uint32_t status_change_t = 0;
+static bool status_change_pending = true;
+static uint32_t status_change_timeout = 0;
+
+// light logic state (output itself is driven by the io task)
+static bool light = false;
+static uint32_t lightDime = LIGHT_DIMMING;
+static uint32_t tLightOff = 0;
+static uint32_t tLightOn = 0;
+static bool lightHold = false; // don't start auto off timer after motor stops
+
 void init(void) {
-  // Initialize outputs
-  gpio_init(ENABLE_R_PIN);
-  gpio_set_dir(ENABLE_R_PIN, GPIO_OUT);
-  gpio_init(ENABLE_L_PIN);
-  gpio_set_dir(ENABLE_L_PIN, GPIO_OUT);
-
-  gpio_init(PWM_R_PIN);
-  gpio_set_dir(PWM_R_PIN, GPIO_OUT);
-  gpio_init(PWM_L_PIN);
-  gpio_set_dir(PWM_L_PIN, GPIO_OUT);
-
-  gpio_init(LIGHT_PIN);
-  gpio_set_dir(LIGHT_PIN, GPIO_OUT);
-
   // Initialize nvdata (load configuration)
   load_config(&config);
 
   // Initialize communication
   comm_init();
 
-  // initialize PWM
-  // 1. nastaveni pwm pinu
-  gpio_set_function(PWM_L_PIN, GPIO_FUNC_PWM);
-  gpio_set_function(PWM_R_PIN, GPIO_FUNC_PWM);
-  gpio_set_function(LIGHT_PIN, GPIO_FUNC_PWM);
-
-  // 2. zjisti bloky (slices) pwm
-  uint sliceL = pwm_gpio_to_slice_num(PWM_L_PIN);
-  uint sliceR = pwm_gpio_to_slice_num(PWM_R_PIN);
-  uint sliceLight = pwm_gpio_to_slice_num(LIGHT_PIN);
-
-  // 3. nastaveni periody
-  pwm_set_wrap(sliceL, PWM_PERIOD);
-  pwm_set_wrap(sliceR, PWM_PERIOD);
-  pwm_set_wrap(sliceLight, PWM_PERIOD);
-
-  // 4. nastaveni stridy (Duty Cycle) ~ 0
-  pwm_set_gpio_level(PWM_L_PIN, 0);
-  pwm_set_gpio_level(PWM_R_PIN, 0);
-  pwm_set_gpio_level(LIGHT_PIN, 0);
-
-  // 5. spusteni PWM bloku
-  pwm_set_enabled(sliceL, true);
-  pwm_set_enabled(sliceR, true);
-  pwm_set_enabled(sliceLight, true);
-
-  // initialize ADC
-  adc_module_init();
-
-  // Initialize onboard NeoPixel
-  ws2812_init(RGB_LED_PIN);
+  // Initialize motor, light and status LED outputs
+  io_init();
 }
 
-#define COMM_BUFLEN 128
-uint8_t comm_buff[COMM_BUFLEN];
-uint8_t usb_comm_buff[COMM_BUFLEN];
+// receive commands from UART and USB, parse them into events
+static void comm_receive(uint32_t now) {
+  int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
+  if (comrx) {
+    comm_buff[comrx] = '\0';
+    printf("Rx: %.*s\n", COMM_BUFLEN, comm_buff);
+    comm_parse(comm_buff, comrx, COMM_BUFLEN);
+  }
 
-GateState gate = GATE_UNKNOWN;
-bool light = false;
+  int usb_comrx = usb_comm_poll(now, 100, usb_comm_buff, COMM_BUFLEN);
+  if (usb_comrx) {
+    usb_comm_buff[usb_comrx] = '\0';
+    printf("USB Rx: %.*s\n", COMM_BUFLEN, usb_comm_buff);
+    comm_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN);
+  }
+}
 
-int main() {
-  stdio_init_all();         // Inicializace USB CDC
+// detect status change and queue status events (on change and periodically)
+static void status_update(uint32_t now) {
+  uint8_t motor_status = motor_get_status();
 
-  init();
+  if ((motor_status != motor_status_last) || (light != light_last)) {
+    motor_status_last = motor_status;
+    light_last = light;
+    status_change_t = now;
+    status_change_pending = true;
+    status_change_timeout = STATUS_CHANGE_TIMEOUT;
+  }
+  else if (status_change_pending &&
+           ((now - status_change_t) >= status_change_timeout)) {
+    if (event_queue_push(EVENT_STATUS) || event_queue_contains(EVENT_STATUS))
+      status_change_pending = false;
+  }
 
-  bool led = false;//, trig = false;
-  int32_t tLed = 0, tDisp = 0, tTrig = 0, tTim = 0, tAdc = 0;
-  uint8_t r = 0x00, g = 0x00, b = 0x00;
+  if ((now - tLastTx) > STATUS_REPEAT_PERIOD)
+    event_queue_push(EVENT_STATUS);
+}
 
-  btn_ctx_t btnL, btnR, btnLight;
-  button_init(&btnL, BUTTON_L_PIN);
-  button_init(&btnR, BUTTON_R_PIN);
-  button_init(&btnLight, BUTTON_LIGHT_PIN);
+// send status message, retry later if uart is busy or the last one was too recent
+static event_result_t status_send(uint32_t now) {
+  if (comm_tx_busy() ||
+      (status_sent && ((now - tLastTx) < STATUS_REPEAT_PERIOD_MIN)))
+    return EVENT_RETRY;
 
-  //comm_init();
+  tLastTx = now;
+  status_sent = true;
+  status_change_timeout = STATUS_CHANGE_TIMEOUT;
+  int len = sprint_status(comm_buff, COMM_BUFLEN);
+  comm_write(comm_buff, len);
+  printf("TX: %s\n", comm_buff);
+  return EVENT_HANDLED;
+}
 
-  tDisp = millis();
-
-  uint32_t cnt = 0;
-  int32_t adc[3];
-
-  uint32_t pwm = 0;
-  uint16_t voltage = 0;
-
-  uint8_t motor_status = 0;
-  uint8_t motor_status_last = 0;
-  uint32_t motor_running_t = 0;
-  uint32_t motor_current_t = 0;
-  int32_t motor_current_offset[2] = {0, 0};
-  uint32_t motor_current_offset_t = 0;
-  bool motor_current_offset_calibrated = false;
-  bool motor_current_measured = false;
-
-  uint32_t tLastTx = 0;
-  bool status_sent = false;
-  bool light_last = false;
-  uint32_t status_change_t = millis();
-  bool status_change_pending = true;
-  uint32_t status_change_timeout = 1000 + (get_rand_32() % STATUS_CHANGE_TIMEOUT);
-
-  uint32_t tLight = 0;
-  uint32_t lightLevel = 0; // linear ramp 0..PWM_PERIOD, mapped by light_curve()
-  uint32_t lightDime = LIGHT_DIMMING;
-  uint32_t tLightOff = 0;
-  uint32_t tLightOn = 0;
-  bool lightHold = false; // don't start auto off timer after motor stops
-
-  while (true) {
-    int32_t now = millis();
-    event_t event = EVENT_NONE;
-
-    // receive commands from UART
-    int comrx = comm_poll(now, 100, comm_buff, COMM_BUFLEN);
-    if (comrx) {
-      comm_buff[comrx] = '\0';
-      printf("Rx: %.*s\n", COMM_BUFLEN, comm_buff);
-      comm_parse(comm_buff, comrx, COMM_BUFLEN);
-    }
-
-    // receive commands from USB
-    int usb_comrx = usb_comm_poll(now, 100, usb_comm_buff, COMM_BUFLEN);
-    if (usb_comrx) {
-      usb_comm_buff[usb_comrx] = '\0';
-      printf("USB Rx: %.*s\n", COMM_BUFLEN, usb_comm_buff);
-      comm_parse(usb_comm_buff, usb_comrx, COMM_BUFLEN);
-    }
-
-    // detect status change and send status event if needed
-    if ((motor_status != motor_status_last) ||
-        (light != light_last)) {
-      motor_status_last = motor_status;
-      light_last = light;
-      status_change_t = now;
-      status_change_pending = true;
-      status_change_timeout = STATUS_CHANGE_TIMEOUT;
-    }
-    else if (status_change_pending &&
-             ((now - status_change_t) >= status_change_timeout)) {
-      if (event_queue_push(EVENT_STATUS) || event_queue_contains(EVENT_STATUS))
-        status_change_pending = false;
-    }
-
-    // button polling and event generation
-    button_poll(&btnL, now);
-    button_poll(&btnR, now);
-    button_poll(&btnLight, now);
-    queue_button_events(btnL.st, btnR.st, btnLight.st);
-
-    // event processing
-    event = event_queue_peek();
-    event_result_t event_result = EVENT_HANDLED;
-
-    if ((now - tLastTx) > STATUS_REPEAT_PERIOD)
-      event_queue_push(EVENT_STATUS);
-
-    if (event == EVENT_STATUS) {
-      if (comm_tx_busy() ||
-          (status_sent && ((now - tLastTx) < STATUS_REPEAT_PERIOD_MIN))) {
-        event_result = EVENT_RETRY;
-      }
-      else {
-        tLastTx = now;
-        status_sent = true;
-        status_change_timeout = STATUS_CHANGE_TIMEOUT;
-        comrx = sprint_status(comm_buff, COMM_BUFLEN);
-        comm_write(comm_buff, comrx);
-        printf("TX: %s\n", comm_buff);
-      }
-    }
-
-    if (event == EVENT_CMD_LIGHT_ON) {
+// light on/off decisions: commands, button, auto off timers
+static void light_handle_event(event_t event, uint32_t now) {
+  switch (event) {
+    case EVENT_CMD_LIGHT_ON:
       light = true;
       lightDime = LIGHT_DIMMING;
       tLightOff = 0; // switch off automatic switching off, clear?
-    }
-    if (event == EVENT_CMD_LIGHT_OFF) {
+      break;
+    case EVENT_CMD_LIGHT_OFF:
       light = false;
       lightDime = LIGHT_DIMMING;
       lightHold = false;
-    }
-    if (event == EVENT_CMD_LIGHT_HOLD) {
+      break;
+    case EVENT_CMD_LIGHT_HOLD:
       lightHold = true;
       tLightOff = 0;
-    }
-    if (event == EVENT_BTN_LIGHT) {
+      break;
+    case EVENT_BTN_LIGHT:
       light = !light;
       lightHold = false;
       lightDime = LIGHT_DIMMING_BTN;
@@ -193,195 +114,131 @@ int main() {
         tLightOn = now;
         tLightOff = LIGHT_AUTO_OFF;
       }
-    }
-
-    // any new motor command cancels light hold (re-set by EVENT_CMD_LIGHT_HOLD)
-    if ((event == EVENT_BTN_OPEN) || (event == EVENT_BTN_CLOSE) ||
-        (event == EVENT_CMD_OPEN) || (event == EVENT_CMD_CLOSE))
+      break;
+    case EVENT_BTN_OPEN:
+    case EVENT_BTN_CLOSE:
+    case EVENT_CMD_OPEN:
+    case EVENT_CMD_CLOSE:
+      // any new motor command cancels light hold (re-set by EVENT_CMD_LIGHT_HOLD)
       lightHold = false;
+      break;
+    case EVENT_MOTOR_IS_UP:
+    case EVENT_MOTOR_IS_DOWN:
+      // motor reached end position - start light timer if light is on
+      if (light && !lightHold) {
+        tLightOn = now;
+        tLightOff = LIGHT_DOOR_AUTO_OFF;
+        lightDime = LIGHT_DIMMING; // slow dimming
+      }
+      break;
+    default:
+      break;
+  }
 
-    if ((event == EVENT_BTN_OPEN) || (event == EVENT_BTN_CLOSE)) {
-      if (motor_status & MOTOR_RUNNING) {
-        printf("MOTOR STOP\n");
-        motor_status &= ~MOTOR_RUNNING;
-      }
-      else if (event == EVENT_BTN_OPEN) {
-        motor_status |= MOTOR_GO_UP;
-        motor_running_t = now;
-      }
-      else {
-        motor_status |= MOTOR_GO_DOWN;
-        motor_running_t = now;
-      }
-    }
-    else if ((motor_status & MOTOR_RUNNING) == 0) {
-      if (event == EVENT_CMD_OPEN) {
-        motor_status |= MOTOR_GO_UP;
-        motor_running_t = now;
-      }
-      else if (event == EVENT_CMD_CLOSE) {
-        motor_status |= MOTOR_GO_DOWN;
-        motor_running_t = now;
-      }
-    }
+  // automatic light off
+  if (light && (tLightOff != 0) && ((now - tLightOn) > tLightOff))
+    light = false;
 
-    if (motor_status & MOTOR_RUNNING) {
-      if ((now - motor_running_t) > MOTOR_SAFETY_TIMEOUT) { // safety timeout
-        printf("MOTOR TIMEOUT\n");
-        motor_status &= ~MOTOR_RUNNING;
-      }
-    }
+  light_set(light, lightDime);
+}
 
-    // force motor up/down
-    if (btnL.st == BTNST_HOLD) {
-      motor_status |= MOTOR_FORCE_UP;
-      motor_status &= ~(MOTOR_GO_DOWN | MOTOR_FORCE_DOWN | MOTOR_GO_UP);
-    }
-    else if (btnR.st == BTNST_HOLD) {
-      motor_status |= MOTOR_FORCE_DOWN;
-      motor_status &= ~(MOTOR_GO_UP | MOTOR_FORCE_UP | MOTOR_GO_DOWN);
-    }
-    else {
-      motor_status &= ~(MOTOR_FORCE_UP | MOTOR_FORCE_DOWN);
-    }
+// translate events to motor commands
+static void motor_handle_event(event_t event) {
+  switch (event) {
+    case EVENT_BTN_OPEN:
+      motor_command(MOTOR_CMD_OPEN_OR_STOP);
+      break;
+    case EVENT_BTN_CLOSE:
+      motor_command(MOTOR_CMD_CLOSE_OR_STOP);
+      break;
+    case EVENT_CMD_OPEN:
+      motor_command(MOTOR_CMD_OPEN);
+      break;
+    case EVENT_CMD_CLOSE:
+      motor_command(MOTOR_CMD_CLOSE);
+      break;
+    default:
+      break;
+  }
+}
 
-    if (motor_status & (MOTOR_GO_UP | MOTOR_FORCE_UP)) {
-      gpio_put(ENABLE_L_PIN, true);
-      gpio_put(ENABLE_R_PIN, true);
-      pwm_set_gpio_level(PWM_R_PIN, motor_current_offset_calibrated ? pwm : 0);
-      pwm_set_gpio_level(PWM_L_PIN, 0);
-    }
-    else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
-      gpio_put(ENABLE_L_PIN, true);
-      gpio_put(ENABLE_R_PIN, true);
-      pwm_set_gpio_level(PWM_R_PIN, 0);
-      pwm_set_gpio_level(PWM_L_PIN, motor_current_offset_calibrated ? pwm : 0);
-    }
-    else {
-      gpio_put(ENABLE_L_PIN, false);
-      gpio_put(ENABLE_R_PIN, false);
-      pwm_set_gpio_level(PWM_R_PIN, 0);
-      pwm_set_gpio_level(PWM_L_PIN, 0);
-    }
+// force motor up/down while button is held
+static void motor_handle_force(const btn_ctx_t *btnL, const btn_ctx_t *btnR) {
+  static motor_cmd_t force_last = MOTOR_CMD_FORCE_OFF;
 
-    // read ADC and calculate voltage and PWM value
-    if (adc_poll(now, adc)) {
-      voltage = adc2u(adc[0]);
-      pwm = v2pwm(voltage);
-    }
+  motor_cmd_t force = MOTOR_CMD_FORCE_OFF;
+  if (btnL->st == BTNST_HOLD)
+    force = MOTOR_CMD_FORCE_UP;
+  else if (btnR->st == BTNST_HOLD)
+    force = MOTOR_CMD_FORCE_DOWN;
 
-#ifdef DEBUG
-    if ((now - tAdc) > 20) {
-      tAdc = now;
-      printf("%04X %04X %04X\n", (unsigned int)adc[0], (unsigned int)adc[1], (unsigned int)adc[2]);
-      //printf("%0.01fV, %d\n", (float)voltage/1000.0, pwm);
-      //printf("Motor status: %x\n", motor_status);
-    }
-#endif
+  if ((force != force_last) && motor_command(force))
+    force_last = force;
+}
 
-    // motor current monitoring
-    if (motor_status & MOTOR_RUNNING) {
-      motor_status &= ~MOTOR_IS_END;
-      gate = GATE_UNKNOWN;
-      // check if motor current is above threshold, if not, stop motor
-      if (!motor_current_offset_calibrated) { // calibrate motor current offset first
-        motor_current_t = now;
-        if ((now - motor_current_offset_t) > MOTOR_CURRENT_OFFSET_TIMEOUT) {
-          motor_current_offset[0] = adc[1];
-          motor_current_offset[1] = adc[2];
-          motor_current_offset_calibrated = true;
-          printf("MOTOR CURRENT OFFSET: %04X %04X\n", (unsigned int)motor_current_offset[0], (unsigned int)motor_current_offset[1]);
-          motor_current_offset_t = now;
-          motor_current_measured = false;
-        }
-      }
-      else {
-        if (!motor_current_measured && ((now - motor_current_offset_t) > MOTOR_CURRENT_OFFSET_TIMEOUT)) {
-          int32_t current1 = (int32_t)adc[1] - motor_current_offset[0];
-          int32_t current2 = (int32_t)adc[2] - motor_current_offset[1];
-          printf("MOTOR CURRENT: %ld %ld\n", (long)current1, (long)current2);
-          motor_current_measured = true;
-        }
-        if ((adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) || (adc[2] > (motor_current_offset[1] + CURRENT2_MIN))) {
-          motor_current_t = now;
-        }
-        else if ((now - motor_current_t) > MOTOR_CURRENT_TIMEOUT) {
-          if (motor_status & MOTOR_GO_UP) {
-            motor_status |= MOTOR_IS_UP;
-            gate = GATE_OPEN;
-            event_queue_push(EVENT_MOTOR_IS_UP);
-          }
-          else if (motor_status & MOTOR_GO_DOWN) {
-            motor_status |= MOTOR_IS_DOWN;
-            gate = GATE_CLOSED;
-            event_queue_push(EVENT_MOTOR_IS_DOWN);
-          }
-          motor_status &= ~MOTOR_RUNNING;
+// main logic task: communication, buttons, events, status reporting, light logic
+void main_task(void *param) {
+  (void)param;
 
-          // motor stopped - start light timer if light is on
-          if (light && !lightHold) {
-            tLightOn = now;
-            tLightOff = LIGHT_DOOR_AUTO_OFF;
-            lightDime = LIGHT_DIMMING; // slow dimming
-          }
-        }
-      }
-    } else {
-      motor_current_t = now;
-      motor_current_offset_t = now;
-      motor_current_offset_calibrated = false;
-    }
+  btn_ctx_t btnL, btnR, btnLight;
+  button_init(&btnL, BUTTON_L_PIN);
+  button_init(&btnR, BUTTON_R_PIN);
+  button_init(&btnLight, BUTTON_LIGHT_PIN);
 
-    // automatic light off
-    if (light && (tLightOff != 0) && ((now - tLightOn) > tLightOff)) {
-      light = false;
-    }
+  status_change_t = millis();
+  status_change_timeout = 1000 + (get_rand_32() % STATUS_CHANGE_TIMEOUT);
 
-    // set light output according to light status
-    if ((now - tLight) > 40) {
-      tLight = now;
-      if (light) {
-        if (lightLevel < PWM_PERIOD) {
-          lightLevel += lightDime;
-          if (lightLevel > PWM_PERIOD)
-            lightLevel = PWM_PERIOD;
-        }
-      }
-      else {
-        if (lightLevel > lightDime)
-          lightLevel -= lightDime;
-        else
-          lightLevel = 0;
-      }
-      pwm_set_gpio_level(LIGHT_PIN, light_curve(lightLevel, pwm));
-    }
+  while (true) {
+    vTaskDelay(1);
+    uint32_t now = millis();
 
-    // led status
-    if ((now - tLed) > 250) {
-      tLed = now;
-      if (motor_status & (MOTOR_GO_UP | MOTOR_FORCE_UP)) {
-        g = (g == 0x10) ? 0 : 0x10;
-        r = 0;
-      }
-      else if (motor_status & (MOTOR_GO_DOWN | MOTOR_FORCE_DOWN)) {
-        r = (r == 0x10) ? 0 : 0x10;
-        g = 0;
-      }
-      else if (motor_status & MOTOR_IS_END) {
-        g = (motor_status & MOTOR_IS_UP) ? 0x10 : 0;
-        r = (motor_status & MOTOR_IS_DOWN) ? 0x10 : 0;
-      }
-      else {
-        r = g = 0;
-      }
-      b = light?0x08:0;
-      put_pixel(urgb_u32(r,g,b));
-    }
+    comm_receive(now);
+    status_update(now);
+
+    // button polling and event generation
+    button_poll(&btnL, now);
+    button_poll(&btnR, now);
+    button_poll(&btnLight, now);
+    queue_button_events(btnL.st, btnR.st, btnLight.st);
+    motor_handle_force(&btnL, &btnR);
+
+    // event processing
+    event_t event = event_queue_peek();
+    event_result_t event_result = EVENT_HANDLED;
+
+    if (event == EVENT_STATUS)
+      event_result = status_send(now);
+
+    light_handle_event(event, now);
+    motor_handle_event(event);
 
     if (event_result == EVENT_HANDLED) {
       event_queue_pop();
       event_print(event);
     }
-
   }
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *name) {
+  (void)task;
+  panic("stack overflow: %s", name);
+}
+
+void vApplicationMallocFailedHook(void) {
+  panic("malloc failed");
+}
+
+int main() {
+  stdio_init_all();         // Inicializace USB CDC
+
+  init();
+
+  xTaskCreate(io_task, "io", IO_TASK_STACK, NULL, IO_TASK_PRIORITY, NULL);
+  xTaskCreate(main_task, "main", MAIN_TASK_STACK, NULL, MAIN_TASK_PRIORITY, NULL);
+
+  vTaskStartScheduler();
+
+  // should never get here
+  while (true)
+    tight_loop_contents();
 }

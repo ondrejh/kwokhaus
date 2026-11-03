@@ -31,8 +31,6 @@ const int cmd_light_off_len = 4;
 
 // collect all the states needed to export
 //extern tim_t tloc;
-extern GateState gate;
-extern bool light;
 
 buff_t uart_rx_buff = {.bufinp = 0, .bufoutp = 0,};
 buff_t uart_tx_buff = {.bufinp = 0, .bufoutp = 0,};
@@ -147,9 +145,10 @@ int usb_comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
 // print status into the buffer
 int sprint_status(uint8_t *buff, int max) {
   int len = snprintf(buff, max, "%s: ", DEV_NAME);
+  GateState gate = motor_get_gate();
   len += snprintf(&buff[len], max - len, "%s %s",
     gate==GATE_OPEN? "OPEN" : (gate==GATE_CLOSED? "CLOSED" : "UNKNOWN"),
-    light?"LON":"LOFF");
+    light_is_on()?"LON":"LOFF");
   return len;
 }
 
