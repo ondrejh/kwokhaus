@@ -109,8 +109,8 @@ int comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
     int p = (uart_rx_buff.bufoutp + 1) % UART_BUFFLEN;
     ch = uart_rx_buff.buff[p];
     uart_rx_buff.bufoutp = p;
-    if (bufp >= max)
-      bufp = max - 1;
+    if (bufp >= max - 1) // keep room for terminating zero
+      bufp = max - 2;
     rxbuf[bufp++] = ch;
     trx = now;
   }
@@ -129,8 +129,8 @@ int usb_comm_poll(uint32_t now, uint32_t tout, uint8_t *rxbuf, int max) {
     int c = getchar_timeout_us(0);
     if (c == PICO_ERROR_TIMEOUT)
       break;
-    if (bufp >= max)
-      bufp = max - 1;
+    if (bufp >= max - 1) // keep room for terminating zero
+      bufp = max - 2;
     rxbuf[bufp++] = c;
     trx = now;
   }
