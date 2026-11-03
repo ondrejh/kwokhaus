@@ -83,6 +83,7 @@
 #define MOTOR_CURRENT_OFFSET_TIMEOUT 100 // ms (calibrate current offset after motor start)
 #define MOTOR_PROBE_DELAY 5000 // ms (probe real gate position this long after reset)
 #define MOTOR_PROBE_TIME 500 // ms (max run time of each probe direction)
+#define MOTOR_PROBE_CURRENT_MIN 100 // ms (current must last this long to count, filters start spikes/noise)
 #define MOTOR_PROBE_PAUSE 300 // ms (pause between probe moves)
 #define CURRENT1_MIN 0x150 // ADC value (current threshold for motor 1)
 #define CURRENT2_MIN 0x040 // ADC value (current threshold for motor 2)

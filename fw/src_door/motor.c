@@ -106,6 +106,8 @@ typedef enum {
 static probe_t probe = PROBE_WAIT;
 static uint32_t probe_t0 = 0;
 static bool probe_current = false;
+static bool probe_current_on = false; // current present now (not yet confirmed)
+static uint32_t probe_current_t = 0; // start of continuous current
 
 static void motor_start(uint8_t dir, uint32_t now) {
   status &= ~(MOTOR_RUNNING | MOTOR_ERROR);
@@ -131,6 +133,7 @@ static void probe_update(uint32_t now) {
       if (((now - probe_t0) >= MOTOR_PROBE_DELAY) && !(status & MOTOR_RUNNING)) {
         printf("MOTOR PROBE: OPEN\n");
         probe_current = false;
+        probe_current_on = false;
         probe = PROBE_OPEN;
         motor_start(MOTOR_GO_UP, now);
       }
@@ -144,6 +147,7 @@ static void probe_update(uint32_t now) {
         else { // no current, maybe it's open
           printf("MOTOR PROBE: CLOSE\n");
           probe_current = false;
+          probe_current_on = false;
           probe = PROBE_CLOSE;
         }
         motor_start(MOTOR_GO_DOWN, now);
@@ -266,11 +270,19 @@ void motor_update(uint32_t now) {
       bool current = (adc[1] > (motor_current_offset[0] + CURRENT1_MIN)) ||
                      (adc[2] > (motor_current_offset[1] + CURRENT2_MIN));
       if ((probe == PROBE_OPEN) || (probe == PROBE_CLOSE)) {
-        // position probe: stop on current or after probe time
-        if (current)
+        // position probe: stop on lasting current or after probe time
+        if (!current)
+          probe_current_on = false;
+        else if (!probe_current_on) {
+          probe_current_on = true;
+          probe_current_t = now;
+        }
+        if (probe_current_on && ((now - probe_current_t) >= MOTOR_PROBE_CURRENT_MIN))
           probe_current = true;
-        if (current || ((now - motor_current_offset_t) > MOTOR_PROBE_TIME)) {
-          printf("MOTOR PROBE: %s\n", current ? "CURRENT" : "NO CURRENT");
+        if (probe_current || ((now - motor_current_offset_t) > MOTOR_PROBE_TIME)) {
+          printf("MOTOR PROBE: %s (%ld %ld)\n", probe_current ? "CURRENT" : "NO CURRENT",
+            (long)((int32_t)adc[1] - motor_current_offset[0]),
+            (long)((int32_t)adc[2] - motor_current_offset[1]));
           status &= ~MOTOR_RUNNING;
           probe = (probe == PROBE_OPEN) ? PROBE_OPEN_DONE : PROBE_CLOSE_DONE;
           probe_t0 = now;
