@@ -105,9 +105,9 @@ bool config_set_name(config_t *cfg, const char *name) {
   return true;
 }
 
-// set broadcast period in seconds
+// set broadcast period in seconds (0 = no periodic broadcast)
 bool config_set_brper(config_t *cfg, uint32_t brper_s) {
-  if ((brper_s < CONF_BRPER_MIN_S) || (brper_s > CONF_BRPER_MAX_S))
+  if ((brper_s != 0) && ((brper_s < CONF_BRPER_MIN_S) || (brper_s > CONF_BRPER_MAX_S)))
     return false;
   cfg->brper = brper_s * 1000;
   return true;

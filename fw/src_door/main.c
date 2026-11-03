@@ -84,7 +84,7 @@ static void status_update(uint32_t now) {
       status_change_pending = false;
   }
 
-  if ((now - tLastTx) > config.brper)
+  if ((config.brper != 0) && ((now - tLastTx) > config.brper))
     event_queue_push(EVENT_STATUS);
 }
 

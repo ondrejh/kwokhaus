@@ -242,7 +242,7 @@ static bool usb_cmd_line(char *line, bool *changed) {
       printf("CFG: BRPER=%lu\n", (unsigned long)(config.brper / 1000));
     }
     else
-      printf("CFG: ERR brper (%d..%d s)\n", CONF_BRPER_MIN_S, CONF_BRPER_MAX_S);
+      printf("CFG: ERR brper (0 = off, %d..%d s)\n", CONF_BRPER_MIN_S, CONF_BRPER_MAX_S);
     return true;
   }
   return false;

@@ -22,7 +22,7 @@ typedef struct {
   uint32_t magic;
   uint32_t version;
   uint32_t cnt; // data storage counter
-  uint32_t brper; // broadcast (status repeat) period [ms]
+  uint32_t brper; // broadcast (status repeat) period [ms], 0 = off
   char name[CONF_MAX_NAME + 1]; // call name (zero terminated)
   uint8_t reserved[3]; // explicit padding (keeps crc deterministic)
   uint32_t crc; // checksum (must be last)

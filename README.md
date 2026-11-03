@@ -12,7 +12,7 @@ command | answer | description
 --- | --- | ---
 `CFG?` | `CFG: NAME=KWOK BRPER=1800 CNT=0` | show config (CNT = flash save counter)
 `NAME=<name>` | `CFG: NAME=<name>` | device name used in messages, 1-16 chars `A-Z a-z 0-9 _ -`
-`BRPER=<s>` | `CFG: BRPER=<s>` | status broadcast period in seconds (10 .. 86400)
+`BRPER=<s>` | `CFG: BRPER=<s>` | status broadcast period in seconds (10 .. 86400), `0` = no periodic broadcast (status is still sent on change and on `?`)
 
 Invalid value is answered with `CFG: ERR ...`. Changes are applied immediately and saved to flash when the motor is stopped (`CFG: saved (cnt N)`).
 
