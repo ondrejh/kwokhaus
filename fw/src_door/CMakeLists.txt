@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Define the project name (once)
-set(PROJECT_NAME motor)
+set(PROJECT_NAME door)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
