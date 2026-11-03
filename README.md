@@ -2,10 +2,28 @@
 
 Attempt on some eggish automation.
 
+## Configuring (door)
+
+Door firmware (`fw/src_door`) keeps its configuration in the last flash sector, so it survives firmware updates (only full flash erase wipes it). When no valid config is stored, defaults from `config.h` are used (name `KWOK`, broadcast period 30 min).
+
+Configure over USB serial only (not over the Meshtastic UART), one command per line:
+
+command | answer | description
+--- | --- | ---
+`CFG?` | `CFG: NAME=KWOK BRPER=1800 CNT=0` | show config (CNT = flash save counter)
+`NAME=<name>` | `CFG: NAME=<name>` | device name used in messages, 1-16 chars `A-Z a-z 0-9 _ -`
+`BRPER=<s>` | `CFG: BRPER=<s>` | status broadcast period in seconds (10 .. 86400)
+
+Invalid value is answered with `CFG: ERR ...`. Changes are applied immediately and saved to flash when the motor is stopped (`CFG: saved (cnt N)`).
+
+Example (second door): connect USB, open terminal (e.g. `picocom /dev/ttyACM0`), type `NAME=KMUT`, check with `CFG?`.
+
+Note: when `config_t` layout changes, increase `CONF_VERSION` in `nvdata.h` (and migrate old data in `load_config()`), otherwise the stored config falls back to defaults.
+
 # ToDo
 
 - [ ] remote setting
-- [ ] non volatile config (not hard coded)
+- [x] non volatile config (not hard coded) - door: name, broadcast period
 
 
 ---
