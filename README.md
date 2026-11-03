@@ -14,9 +14,21 @@ command | answer | description
 `NAME=<name>` | `CFG: NAME=<name>` | device name used in messages, 1-16 chars `A-Z a-z 0-9 _ -`
 `BRPER=<s>` | `CFG: BRPER=<s>` | status broadcast period in seconds (10 .. 86400), `0` = no periodic broadcast (status is still sent on change and on `?`)
 
-Invalid value is answered with `CFG: ERR ...`. Changes are applied immediately and saved to flash when the motor is stopped (`CFG: saved (cnt N)`).
+Invalid value is answered with `CFG: ERR ...`. Changes are applied immediately and saved to flash when the motor is stopped (`CFG: saved (cnt N)`, or `CFG: save skipped (same as stored)`).
 
-Example (second door): connect USB, open terminal (e.g. `picocom /dev/ttyACM0`), type `NAME=KMUT`, check with `CFG?`.
+### Config tool
+
+Easiest way is `fw/test/door_config.py` (needs `pyserial`, see `fw/test/requirements.txt`). It reads the config, asks whether to change it, asks for the values (Enter keeps current one), shows the changes and writes them after confirmation. Then it waits for the flash save and reads the config back to verify.
+
+```
+cd fw/test
+./door_config.py                      # default port /dev/ttyACM0
+./door_config.py --port /dev/ttyACM1
+```
+
+Options: `--port`, `--timeout` (answer timeout, default 2 s), `--save-timeout` (wait for flash save, default 30 s - save waits while motor runs).
+
+Manually (second door example): connect USB, open terminal (e.g. `picocom /dev/ttyACM0`), type `NAME=KMUT`, check with `CFG?`.
 
 Note: when `config_t` layout changes, increase `CONF_VERSION` in `nvdata.h` (and migrate old data in `load_config()`), otherwise the stored config falls back to defaults.
 
